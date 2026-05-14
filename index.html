@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>Maglie Senza Ostacoli</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+
 <style>
 :root { --bg: #0a0c10; --surface: #111318; --border: rgba(255,255,255,.07); --text: #e8eaf0; --accent: #e03535; --font-body: 'Barlow', sans-serif; --blue: #2d7de8; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -37,23 +38,17 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
 .status-select { background: #222; color: white; border: 1px solid var(--border); padding: 6px; border-radius: 4px; font-size: 11px; margin-top: 8px; width: 100%; display: none; }
 #preview { width: 100%; max-height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; display: none; }
 
-/* STILE INDICATORI A GOCCIA */
-.custom-pin {
-  width: 28px;
-  height: 28px;
-  border-radius: 50% 50% 50% 0;
-  background: var(--accent);
-  position: absolute;
-  transform: rotate(-45deg);
-  left: 50%;
-  top: 50%;
-  margin: -24px 0 0 -14px;
-  border: 2px solid #fff;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-}
+/* Stile Pin Goccia */
+.custom-pin { width: 28px; height: 28px; border-radius: 50% 50% 50% 0; position: absolute; transform: rotate(-45deg); left: 50%; top: 50%; margin: -24px 0 0 -14px; border: 2px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
+
+/* Correzione per la barra di ricerca su sfondo scuro */
+.leaflet-control-geocoder { background: var(--surface) !important; color: white !important; border: 1px solid var(--border) !important; }
+.leaflet-control-geocoder-form input { color: white !important; }
+.leaflet-control-geocoder-icon { filter: invert(1); }
 </style>
 </head>
 <body>
+
 <div id="topbar">
   <div class="logo" onclick="location.reload()">MAGLIE<span> SENZA OSTACOLI</span></div>
   <div style="text-align: right;">
@@ -62,6 +57,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     <button onclick="abilitaGestione()" style="font-size: 10px; background:none; border:none; color:#5a6070; cursor:pointer;">🔐 ADMIN</button>
   </div>
 </div>
+
 <div id="main">
   <div id="map-wrap">
     <div id="filter-container">
@@ -79,6 +75,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     </div>
     <div id="map"></div>
   </div>
+
   <div id="sidebar">
     <div class="section-title">Nuova Segnalazione</div>
     <div class="cat-grid">
@@ -94,6 +91,9 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     <div id="lista" style="margin-top:20px;"></div>
   </div>
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -123,10 +123,25 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   let markersLayer = L.layerGroup();
 
   const bounds = [[40.0800, 18.2500], [40.1550, 18.3500]];
-  const map = L.map('map', { zoomControl: false, maxBounds: bounds, maxBoundsViscosity: 1.0, minZoom: 13 }).setView([40.1194, 18.2997], 15);
+  const map = L.map('map', { zoomControl: true, maxBounds: bounds, maxBoundsViscosity: 1.0, minZoom: 13 }).setView([40.1194, 18.2997], 15);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
   markersLayer.addTo(map);
+
+  // BARRA DI RICERCA (Geocoder)
+  L.Control.geocoder({
+    defaultMarkGeocode: false,
+    placeholder: "Cerca via a Maglie...",
+    errorMessage: "Indirizzo non trovato."
+  })
+  .on('markgeocode', function(e) {
+    var bbox = e.geocode.bbox;
+    var poly = L.polygon([
+      bbox.getSouthEast(), bbox.getNorthEast(), bbox.getNorthWest(), bbox.getSouthWest()
+    ]);
+    map.fitBounds(poly.getBounds());
+  })
+  .addTo(map);
 
   window.toggleDropdown = () => document.getElementById("myDropdown").classList.toggle("show");
   window.applyFilter = (f) => { activeFilter = f; document.getElementById("currentFilterText").innerText = f.toUpperCase(); renderData(); };
@@ -188,7 +203,6 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
         <select class="status-select" onchange="aggiornaStato('${id}', this.value)" style="${isAdmin ? 'display:block' : 'none'}">
           <option value="non-risolta" ${status==='non-risolta'?'selected':''}>🔴 Segnalata</option>
           <option value="risolta" ${status==='risolta'?'selected':''}>🟢 Risolta</option>
-          <option value="verificato">✅ Segna VERIFICATO</option>
           <option value="elimina">🗑 Elimina</option>
         </select>
       `;
@@ -198,7 +212,6 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
 
   window.aggiornaStato = async (id, val) => {
     if(val === 'elimina') { if(confirm("Eliminare?")) await remove(ref(db, 'segnalazioni/' + id)); }
-    else if(val === 'verificato') { await update(ref(db, 'segnalazioni/' + id), { verificato: true }); }
     else await update(ref(db, 'segnalazioni/' + id), { status: val });
   };
 
@@ -225,7 +238,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
         await uploadBytes(sRef(storage, fPath), file);
         fUrl = await getDownloadURL(sRef(storage, fPath));
       }
-      await push(ref(db, 'segnalazioni'), { cat: selectedCat, desc: d, lat: latlng.lat, lng: latlng.lng, fotoUrl: fUrl, fotoPath: fPath, status: 'non-risolta', ts: Date.now(), verificato: false });
+      await push(ref(db, 'segnalazioni'), { cat: selectedCat, desc: d, lat: latlng.lat, lng: latlng.lng, fotoUrl: fUrl, fotoPath: fPath, status: 'non-risolta', ts: Date.now() });
       location.reload();
     } catch (e) { b.innerText = "INVIA"; b.disabled = false; }
   }
