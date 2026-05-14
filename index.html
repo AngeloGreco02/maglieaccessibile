@@ -16,8 +16,8 @@
         @media (min-width: 768px) { #main { flex-direction: row; } }
         #map-wrap { flex: 1; position: relative; display: flex; flex-direction: column; min-height: 45vh; }
         #map { flex: 1; width: 100%; background: #1a1a1a; }
-        #controls { background: var(--surface); padding: 8px; display: flex; gap: 5px; z-index: 1000; border-bottom: 1px solid var(--border); }
-        .btn { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); padding: 8px 12px; border-radius: 20px; font-size: 10px; font-weight: 700; cursor: pointer; }
+        #controls { background: var(--surface); padding: 8px; display: flex; gap: 5px; z-index: 1000; border-bottom: 1px solid var(--border); overflow-x: auto; }
+        .btn { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); padding: 8px 12px; border-radius: 20px; font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap; }
         .btn-blue { background: var(--blue); border: none; }
         .btn-green { background: var(--green); border: none; }
         #sidebar { background: var(--surface); width: 100%; padding: 15px; overflow-y: auto; z-index: 1002; border-top: 1px solid var(--border); }
@@ -31,7 +31,7 @@
         .custom-pin { width: 34px; height: 34px; border-radius: 50% 50% 50% 0; position: absolute; transform: rotate(-45deg); left: 50%; top: 50%; margin: -34px 0 0 -17px; border: 2px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
         .pin-icon { transform: rotate(45deg); font-size: 16px; display: block; }
         .leaflet-control-geocoder { background: #1a1a1a !important; border: 1px solid var(--border) !important; border-radius: 8px !important; }
-        .leaflet-control-geocoder-form input { color: white !important; background: transparent !important; }
+        .leaflet-control-geocoder-form input { color: white !important; background: transparent !important; border: none !important; }
     </style>
 </head>
 <body>
@@ -47,25 +47,25 @@
 <div id="main">
     <div id="map-wrap">
         <div id="controls">
-            <select id="filterSelect" class="btn" onchange="window.filtraMappa(this.value)">
+            <select id="filterSelect" class="btn" style="color: black;">
                 <option value="TUTTE">🔍 TUTTE LE SEGNALAZIONI</option>
                 <option value="Barriera">♿ BARRIERE</option>
                 <option value="Auto">🚗 AUTO</option>
                 <option value="Guasto">⚠️ GUASTI</option>
                 <option value="OK">✅ OK</option>
             </select>
-            <button class="btn btn-blue" onclick="vaiMorigino()" id="btnMor">📍 MORIGINO</button>
-            <button class="btn btn-green" onclick="trovaGPS()">🎯 GPS</button>
+            <button class="btn btn-blue" id="btnMor">📍 MORIGINO</button>
+            <button class="btn btn-green" id="btnGps">🎯 GPS</button>
         </div>
         <div id="map"></div>
     </div>
 
     <div id="sidebar">
         <div class="cat-grid">
-            <div class="cat-btn active" onclick="setCat(this, 'Barriera')">♿ Barriera</div>
-            <div class="cat-btn" onclick="setCat(this, 'Auto')">🚗 Auto</div>
-            <div class="cat-btn" onclick="setCat(this, 'Guasto')">⚠️ Guasto</div>
-            <div class="cat-btn" onclick="setCat(this, 'OK')">✅ Luogo OK</div>
+            <div class="cat-btn active" data-cat="Barriera">♿ Barriera</div>
+            <div class="cat-btn" data-cat="Auto">🚗 Auto</div>
+            <div class="cat-btn" data-cat="Guasto">⚠️ Guasto</div>
+            <div class="cat-btn" data-cat="OK">✅ Luogo OK</div>
         </div>
         <textarea id="desc" rows="3" placeholder="Descrivi il problema..."></textarea>
         <div style="font-size: 10px; color: var(--blue); font-weight: 700; margin-bottom: 5px;">📸 FOTO:</div>
@@ -112,23 +112,28 @@
 
     map.on('click', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
     
-    window.trovaGPS = () => map.locate({setView: true, maxZoom: 17});
+    document.getElementById('btnGps').onclick = () => map.locate({setView: true, maxZoom: 17});
     map.on('locationfound', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
 
-    window.vaiMorigino = () => {
-        const btn = document.getElementById('btnMor');
-        if(btn.innerText.includes("MORIGINO")) { map.flyTo([40.1417, 18.3098], 17); btn.innerText = "📍 MAGLIE"; }
-        else { map.flyTo([40.1194, 18.2997], 15); btn.innerText = "📍 MORIGINO"; }
+    document.getElementById('btnMor').onclick = function() {
+        if(this.innerText.includes("MORIGINO")) { map.flyTo([40.1417, 18.3098], 17); this.innerText = "📍 MAGLIE"; }
+        else { map.flyTo([40.1194, 18.2997], 15); this.innerText = "📍 MORIGINO"; }
     };
 
-    window.setCat = (el, cat) => {
-        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-        el.classList.add('active'); selectedCat = cat;
+    window.abilitaAdmin = () => { if(prompt("Password Admin:") === "maglie2025") { isAdmin = true; renderData(); } };
+
+    document.querySelectorAll('.cat-btn').forEach(btn => {
+        btn.onclick = function() {
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            selectedCat = this.getAttribute('data-cat');
+        }
+    });
+
+    document.getElementById('filterSelect').onchange = function() {
+        activeFilter = this.value;
+        renderData();
     };
-
-    window.abilitaAdmin = () => { if(prompt("Password:") === "maglie2025") { isAdmin = true; renderData(); } };
-
-    window.filtraMappa = (val) => { activeFilter = val; renderData(); };
 
     onValue(ref(db, 'segnalazioni'), snap => {
         rawData = snap.val() || {};
@@ -144,10 +149,8 @@
             const s = rawData[id];
             if (activeFilter !== "TUTTE" && s.cat !== activeFilter) return;
 
-            // DETERMINAZIONE ICONA E COLORE
             let color = "var(--accent)";
             let iconChar = "♿";
-
             if (s.cat === 'Auto') { color = "var(--orange)"; iconChar = "🚗"; }
             else if (s.cat === 'Guasto') { color = "#7f8c8d"; iconChar = "⚠️"; }
             else if (s.cat === 'OK') { color = "var(--green)"; iconChar = "✅"; }
@@ -164,18 +167,25 @@
             div.className = 'report-item'; div.style.borderLeftColor = color;
             div.innerHTML = `<b>${iconChar} ${s.cat}</b><p style="font-size:11px; margin-top:4px;">${s.desc}</p>
             ${s.fotoUrl ? `<img src="${s.fotoUrl}" style="width:100%; margin-top:8px; border-radius:4px;">` : ''}
-            ${isAdmin ? `<br><button onclick="window.elimina('${id}')" style="color:red; font-size:10px; border:none; background:none; cursor:pointer; margin-top:8px;">🗑 ELIMINA</button>` : ''}`;
+            ${isAdmin ? `<br><button class="btn-del" data-id="${id}" style="color:red; font-size:10px; border:none; background:none; cursor:pointer; margin-top:8px;">🗑 ELIMINA</button>` : ''}`;
             lista.appendChild(div);
         });
-    }
 
-    window.elimina = id => { if(confirm("Eliminare?")) remove(ref(db, 'segnalazioni/'+id)); };
+        document.querySelectorAll('.btn-del').forEach(btn => {
+            btn.onclick = function() {
+                const id = this.getAttribute('data-id');
+                if(confirm("Eliminare?")) remove(ref(db, 'segnalazioni/'+id));
+            }
+        });
+    }
 
     document.getElementById('btnInvia').onclick = async () => {
         const d = document.getElementById('desc').value.trim();
         const file = document.getElementById('fotoFile').files[0];
-        if(!marker || !d) return alert("Punta sulla mappa e scrivi una descrizione!");
-        const btn = document.getElementById('btnInvia'); btn.disabled = true; btn.innerText = "CARICAMENTO...";
+        if(!marker || !d) return alert("Punta sulla mappa e scrivi!");
+        
+        const btn = document.getElementById('btnInvia');
+        btn.disabled = true; btn.innerText = "CARICAMENTO...";
         
         let url = "";
         if(file) {
