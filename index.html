@@ -45,7 +45,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   <div style="text-align: right;">
     <div style="font-size: 10px; color: #5a6070">UN'APP DI ANGELO GRECO</div>
     <div style="font-size: 9px; color: var(--accent); font-weight: 700;">ASSOCIAZIONE C.F.P.</div>
-    <button onclick="abilitaGestione()" style="font-size: 10px; background:none; border:none; color:#5a6070; cursor:pointer; margin-top: 2px;">🔐 ADMIN</button>
+    <button onclick="abilitaGestione()" style="font-size: 10px; background:none; border:none; color:#5a6070; cursor:pointer;">🔐 ADMIN</button>
   </div>
 </div>
 <div id="main">
@@ -109,14 +109,15 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   let rawData = {};
   let markersLayer = L.layerGroup();
 
-  const bounds = [[40.0900, 18.2700], [40.1450, 18.3300]];
+  // CONFINI ALLARGATI PER INCLUDERE MORIGINO (PIÙ A SUD)
+  const bounds = [[40.0850, 18.2700], [40.1450, 18.3300]];
   const map = L.map('map', { zoomControl: false, maxBounds: bounds, maxBoundsViscosity: 1.0, minZoom: 14 }).setView([40.1194, 18.2997], 15);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
   markersLayer.addTo(map);
 
-  // COORDINATE CENTRALI MORIGINO (Piazza San Giovanni Battista)
-  window.vaiAMorigino = () => { map.flyTo([40.1032, 18.3121], 16); };
+  // COORDINATE CENTRALI MORIGINO (INCROCIO VIA ABATE / VIA MARCONI)
+  window.vaiAMorigino = () => { map.flyTo([40.1009, 18.3115], 17); };
 
   map.on('click', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
 
@@ -137,7 +138,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     if(prompt("Password Admin:") === "maglie2025") {
       isAdmin = true;
       document.querySelectorAll('.status-select, .export-btn').forEach(s => s.style.display = 'block');
-      alert("Gestione Associazione C.F.P. Attiva");
+      alert("Gestione C.F.P. Attiva");
     }
   };
 
@@ -153,12 +154,6 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     Object.keys(rawData).reverse().forEach(id => {
       const s = rawData[id];
       if (currentFilter !== 'TUTTE' && s.cat !== currentFilter) return;
-      
-      const now = Date.now();
-      if(s.cat === 'Occupazione' && (now - s.ts) > 86400000 && s.status !== 'risolta') {
-        remove(ref(db, 'segnalazioni/' + id)); return;
-      }
-
       const status = s.status || 'non-risolta';
       let color = s.cat === 'Accessibile' ? '#2d7de8' : (status === 'risolta' ? '#2ecc71' : '#e03535');
       const icon = L.divIcon({ className: 'custom-icon', html: `<div style="background:${color}; width:12px; height:12px; border-radius:50%; border:2px solid #fff;"></div>`, iconSize: [12, 12] });
@@ -188,7 +183,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
 
   window.aggiornaStato = async (id, val, fPath) => {
     if(val === 'elimina') { 
-      if(confirm("Eliminare definitivamente?")) {
+      if(confirm("Eliminare?")) {
         await remove(ref(db, 'segnalazioni/' + id));
         if(fPath) try { await deleteObject(sRef(storage, fPath)); } catch(e) {}
       }
@@ -211,7 +206,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     const file = document.getElementById('foto').files[0];
     if(!marker || !d) return alert("Scegli un punto sulla mappa e scrivi una descrizione!");
     const latlng = marker.getLatLng();
-    if (!L.latLngBounds(bounds).contains(latlng)) return alert("⚠️ Puoi segnalare solo a Maglie e Morigino!");
+    if (!L.latLngBounds(bounds).contains(latlng)) return alert("⚠️ Sei fuori dai confini di Maglie/Morigino!");
     const b = document.getElementById('btnInvia');
     b.innerText = "INVIO..."; b.disabled = true;
     
