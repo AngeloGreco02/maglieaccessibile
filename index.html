@@ -132,7 +132,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
             <strong>${s.cat}</strong>
             <span class="badge" style="background:${color}; color:${status==='in-carico'?'#000':'#fff'}">${status.toUpperCase()}</span>
           </div>
-          ${s.verificato ? '<span class="verified-tag">✅ VERIFICATO DA AMOR FATI</span>' : ''}
+          ${s.verificato ? '<span class="verified-tag">✅ VERIFICATO</span>' : ''}
           <p style="font-size:12px; margin:8px 0; color:#ccc;">${s.desc}</p>
           <select class="status-select" onchange="aggiornaStato('${id}', this.value, '${s.fotoPath || ''}')" style="${isAdmin ? 'display:block' : 'none'}">
             <option value="non-risolta" ${status==='non-risolta'?'selected':''}>🔴 Non Risolta</option>
