@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 
 <style>
-:root { --bg: #0a0c10; --surface: #111318; --border: rgba(255,255,255,.07); --text: #e8eaf0; --accent: #e03535; --font-body: 'Barlow', sans-serif; --blue: #2d7de8; }
+:root { --bg: #0a0c10; --surface: #111318; --border: rgba(255,255,255,.07); --text: #e8eaf0; --accent: #e03535; --font-body: 'Barlow', sans-serif; --blue: #2d7de8; --green: #2ecc71; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font-family: var(--font-body); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
@@ -22,8 +22,9 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 #map { flex: 1; width: 100%; z-index: 1; background: #1a1a1a; }
 
 #filter-container { background: var(--surface); padding: 10px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; z-index: 999; flex-wrap: wrap; }
-.dropbtn, .nav-btn { background: rgba(255,255,255,0.05); color: white; padding: 8px 12px; font-size: 10px; font-weight: 800; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; }
+.dropbtn, .nav-btn, .gps-btn { background: rgba(255,255,255,0.05); color: white; padding: 8px 12px; font-size: 10px; font-weight: 800; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; }
 .nav-btn { background: var(--blue); border: none; }
+.gps-btn { background: var(--green); border: none; }
 
 #sidebar { background: var(--surface); flex: 1; overflow-y: auto; padding: 15px; border-top: 2px solid var(--border); z-index: 2; }
 @media (min-width: 768px) { #sidebar { width: 400px; flex: none; border-left: 1px solid var(--border); } }
@@ -32,19 +33,15 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .cat-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; font-size: 11px; cursor: pointer; text-align: center; }
 .cat-btn.active { border-color: var(--accent); background: rgba(224,53,53,0.1); }
 
-textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-family: inherit; resize: none; }
+textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-family: inherit; resize: none; font-size: 13px; }
 .btn-primary { width: 100%; background: var(--accent); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 800; cursor: pointer; }
 
 .report-item { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--accent); }
 .status-select { background: #222; color: white; border: 1px solid var(--border); padding: 6px; border-radius: 4px; font-size: 11px; margin-top: 8px; width: 100%; display: none; }
-.info-box { font-size: 10px; color: #888; background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px; margin-top: 20px; border: 1px solid var(--border); line-height: 1.4; }
 
 .custom-pin { width: 32px; height: 32px; border-radius: 50% 50% 50% 0; position: absolute; transform: rotate(-45deg); left: 50%; top: 50%; margin: -32px 0 0 -16px; border: 2px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; }
 .pin-icon { transform: rotate(45deg); font-size: 16px; display: block; }
-
-.leaflet-control-geocoder { background: #1a1a1a !important; border: 1px solid var(--border) !important; border-radius: 8px !important; }
-.leaflet-control-geocoder-form input { color: white !important; }
-.leaflet-control-geocoder-icon { filter: invert(1); }
+.assistente-badge { font-size: 9px; background: var(--blue); color: white; padding: 2px 6px; border-radius: 4px; margin-bottom: 5px; display: inline-block; }
 </style>
 </head>
 <body>
@@ -52,7 +49,6 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
 <div id="topbar">
   <div class="logo" onclick="location.reload()">MAGLIE<span> SENZA BARRIERE</span></div>
   <div style="text-align: right;">
-    <div style="font-size: 9px; color: var(--accent); font-weight: 700;">ASSOCIAZIONE C.F.P.</div>
     <button onclick="abilitaGestione()" style="font-size: 10px; background:none; border:none; color:#5a6070; cursor:pointer;">🔐 ADMIN</button>
   </div>
 </div>
@@ -61,35 +57,31 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   <div id="map-wrap">
     <div id="filter-container">
         <select id="filterSelect" class="dropbtn" onchange="applyFilter(this.value)">
-            <option value="TUTTE">🔍 TUTTE LE SEGNALAZIONI</option>
+            <option value="TUTTE">TUTTE</option>
             <option value="Architettonica">♿ BARRIERE</option>
-            <option value="Occupazione">🚗 AUTO / OCCUPAZIONE</option>
+            <option value="Occupazione">🚗 AUTO</option>
             <option value="Manutenzione">⚠️ MANUTENZIONE</option>
-            <option value="Accessibile">✅ LUOGHI ACCESSIBILI</option>
+            <option value="Accessibile">✅ LUOGHI OK</option>
         </select>
-        <button id="toggleBtn" class="nav-btn" onclick="toggleLocation()">📍 VAI A MORIGINO</button>
+        <button class="nav-btn" onclick="toggleLocation()">📍 MORIGINO</button>
+        <button class="gps-btn" onclick="trovaGPS()">🎯 GPS</button>
     </div>
     <div id="map"></div>
   </div>
 
   <div id="sidebar">
+    <div class="assistente-badge">🤖 ASSISTENTE C.F.P. ATTIVO</div>
     <div class="cat-grid">
       <div class="cat-btn active" onclick="setCat(this, 'Architettonica')">♿ Barriera</div>
       <div class="cat-btn" onclick="setCat(this, 'Occupazione')">🚗 Occupazione</div>
       <div class="cat-btn" onclick="setCat(this, 'Manutenzione')">⚠️ Manutenzione</div>
       <div class="cat-btn" onclick="setCat(this, 'Accessibile')">✅ Luogo OK</div>
     </div>
-    <textarea id="desc" rows="3" placeholder="Descrivi il problema o il luogo..."></textarea>
+    <textarea id="desc" rows="4" placeholder="Descrivi qui il problema. L'agente strutturerà la tua segnalazione automaticamente..."></textarea>
     <input type="file" id="foto" accept="image/*" style="margin-bottom:10px; font-size:11px; width:100%;">
-    <div style="font-size: 9px; color: #888; margin-bottom: 10px; font-style: italic;">⚠️ Privacy: non fotografare targhe o volti.</div>
     <button class="btn-primary" id="btnInvia">INVIA SEGNALAZIONE</button>
     
-    <div class="info-box">
-        <strong>IL PROGETTO</strong><br>
-        Iniziativa dell'Associazione <b>Chi si ferma è perduto (C.F.P.)</b>.<br>
-        Mappatura partecipata per rendere Maglie e Morigino accessibili a tutti.
-    </div>
-    <button class="nav-btn" id="exportBtn" onclick="esportaDati()" style="display:none; margin-top:10px; width:100%;">📊 SCARICA REPORT CSV</button>
+    <button class="nav-btn" id="exportBtn" onclick="esportaDati()" style="display:none; margin-top:10px; width:100%;">📊 REPORT CSV</button>
     <div id="lista" style="margin-top:20px;"></div>
   </div>
 </div>
@@ -124,45 +116,34 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   let rawData = {};
   let isAdmin = false;
 
-  // RECINTO GEOGRAFICO (MAGLIE E MORIGINO)
-  const maglieBounds = L.latLngBounds(
-    L.latLng(40.0800, 18.2500), 
-    L.latLng(40.1550, 18.3500)
-  );
+  const maglieBounds = L.latLngBounds(L.latLng(40.0800, 18.2500), L.latLng(40.1550, 18.3500));
+  const map = L.map('map', { maxBounds: maglieBounds, maxBoundsViscosity: 1.0 }).setView([40.1194, 18.2997], 15);
 
-  const map = L.map('map', {
-    maxBounds: maglieBounds,
-    maxBoundsViscosity: 1.0
-  }).setView([40.1194, 18.2997], 15);
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    minZoom: 13
-  }).addTo(map);
-  
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { minZoom: 13 }).addTo(map);
   markersLayer.addTo(map);
 
-  // RICERCA VIA
-  L.Control.geocoder({ defaultMarkGeocode: false, placeholder: "Cerca via..." }).on('markgeocode', e => {
+  L.Control.geocoder({ defaultMarkGeocode: false, placeholder: "Cerca..." }).on('markgeocode', e => {
     map.setView(e.geocode.center, 17);
-    if(currentMarker) map.removeLayer(currentMarker);
-    currentMarker = L.marker(e.geocode.center).addTo(map);
+    updateMarker(e.geocode.center);
   }).addTo(map);
 
-  // CLICK SULLA MAPPA
-  map.on('click', e => {
+  map.on('click', e => updateMarker(e.latlng));
+
+  function updateMarker(latlng) {
     if(currentMarker) map.removeLayer(currentMarker);
-    currentMarker = L.marker(e.latlng).addTo(map);
-  });
+    currentMarker = L.marker(latlng).addTo(map);
+  }
+
+  // FUNZIONE GPS
+  window.trovaGPS = () => {
+    map.locate({setView: true, maxZoom: 17});
+  };
+  map.on('locationfound', e => updateMarker(e.latlng));
+  map.on('locationerror', () => alert("Impossibile trovare la posizione. Controlla i permessi GPS."));
 
   window.toggleLocation = () => {
-    const btn = document.getElementById('toggleBtn');
-    if (!isAtMorigino) {
-      map.flyTo([40.1417, 18.3098], 17);
-      btn.innerText = "📍 RITORNA A MAGLIE"; isAtMorigino = true;
-    } else {
-      map.flyTo([40.1194, 18.2997], 15);
-      btn.innerText = "📍 VAI A MORIGINO"; isAtMorigino = false;
-    }
+    if (!isAtMorigino) { map.flyTo([40.1417, 18.3098], 17); isAtMorigino = true; }
+    else { map.flyTo([40.1194, 18.2997], 15); isAtMorigino = false; }
   };
 
   window.setCat = (el, cat) => {
@@ -171,11 +152,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   };
 
   window.abilitaGestione = () => {
-    if(prompt("Password Admin:") === "maglie2025") {
-      isAdmin = true;
-      document.getElementById('exportBtn').style.display='block';
-      renderData();
-    }
+    if(prompt("Password Admin:") === "maglie2025") { isAdmin = true; document.getElementById('exportBtn').style.display='block'; renderData(); }
   };
 
   window.applyFilter = (val) => { activeFilter = val; renderData(); };
@@ -184,89 +161,64 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
 
   function renderData() {
     const lista = document.getElementById('lista');
-    lista.innerHTML = "";
-    markersLayer.clearLayers();
-
+    lista.innerHTML = ""; markersLayer.clearLayers();
     Object.keys(rawData).reverse().forEach(id => {
       const s = rawData[id];
       if (activeFilter !== 'TUTTE' && s.cat !== activeFilter) return;
-
       const color = s.cat === 'Accessibile' ? '#2d7de8' : (s.status === 'risolta' ? '#2ecc71' : '#e03535');
-      let iconChar = '♿';
-      if(s.cat === 'Occupazione') iconChar = '🚗';
-      if(s.cat === 'Manutenzione') iconChar = '⚠️';
-      if(s.cat === 'Accessibile') iconChar = '✅';
-
-      const icon = L.divIcon({
-        className: 'custom-div-icon',
-        html: `<div class="custom-pin" style="background:${color};"><span class="pin-icon">${iconChar}</span></div>`,
-        iconSize: [32, 42], iconAnchor: [16, 42]
-      });
-
+      const iconChar = s.cat === 'Occupazione' ? '🚗' : (s.cat === 'Manutenzione' ? '⚠️' : (s.cat === 'Accessibile' ? '✅' : '♿'));
+      
+      const icon = L.divIcon({ className:'custom-div-icon', html:`<div class="custom-pin" style="background:${color}"><span class="pin-icon">${iconChar}</span></div>`, iconSize:[32,42], iconAnchor:[16,42] });
       L.marker([s.lat, s.lng], {icon}).addTo(markersLayer).bindPopup(`<b>${s.cat}</b><br>${s.desc}`);
 
       const item = document.createElement('div');
       item.className = 'report-item';
       item.style.borderLeftColor = color;
-      item.innerHTML = `
-        <strong>${iconChar} ${s.cat}</strong>
-        <p style="font-size:11px;">${s.desc}</p>
-        ${s.fotoUrl ? `<img src="${s.fotoUrl}" style="width:100%; border-radius:5px; margin-top:5px; cursor:pointer;" onclick="window.open('${s.fotoUrl}')">` : ''}
+      item.innerHTML = `<strong>${iconChar} ${s.cat}</strong><p style="font-size:11px;">${s.desc}</p>
+        ${s.fotoUrl ? `<img src="${s.fotoUrl}" style="width:100%; border-radius:5px; margin-top:5px;">` : ''}
         <select class="status-select" style="${isAdmin?'display:block':''}" onchange="updateSt('${id}', this.value)">
-          <option value="non-risolta" ${s.status==='non-risolta'?'selected':''}>🔴 Segnalata</option>
-          <option value="risolta" ${s.status==='risolta'?'selected':''}>🟢 Risolta</option>
+          <option value="non-risolta" ${s.status==='non-risolta'?'selected':''}>Segnalata</option>
+          <option value="risolta" ${s.status==='risolta'?'selected':''}>Risolta</option>
           <option value="elimina">🗑 Elimina</option>
-        </select>
-      `;
+        </select>`;
       lista.appendChild(item);
     });
   }
 
   window.updateSt = async (id, val) => {
-    if(val==='elimina') { if(confirm("Confermi eliminazione?")) await remove(ref(db, 'segnalazioni/'+id)); }
+    if(val==='elimina') { if(confirm("Elimina?")) await remove(ref(db, 'segnalazioni/'+id)); }
     else await update(ref(db, 'segnalazioni/'+id), {status:val});
   };
 
-  window.esportaDati = () => {
-    let csv = "Categoria,Descrizione,Latitudine,Longitudine,Stato\n";
-    Object.values(rawData).forEach(s => {
-      csv += `"${s.cat}","${s.desc}","${s.lat}","${s.lng}","${s.status}"\n`;
-    });
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'report_maglie_accessibile.csv'; a.click();
-  };
+  // AGENTE INTELLIGENTE: STRUTTURA IL TESTO
+  function agenteStrutturaDati(testo) {
+    if (testo.length < 5) return testo;
+    const ora = new Date().toLocaleTimeString('it-IT', {hour: '2-digit', minute:'2-digit'});
+    return `[SEGNALAZIONE ASSISTITA] - Ore ${ora}\nDETTAGLIO: ${testo}\nSTATO RILEVATO: Da verificare sul campo.`;
+  }
 
   document.getElementById('btnInvia').onclick = async () => {
-    const d = document.getElementById('desc').value.trim();
+    let d = document.getElementById('desc').value.trim();
     const file = document.getElementById('foto').files[0];
-    if(!currentMarker || !d) return alert("Per favore, segna un punto sulla mappa e scrivi una descrizione.");
+    if(!currentMarker || !d) return alert("Punta la mappa e scrivi!");
     
-    const btn = document.getElementById('btnInvia');
-    btn.disabled = true; btn.innerText = "INVIO IN CORSO...";
+    // L'agente interviene qui
+    d = agenteStrutturaDati(d);
+
+    const btn = document.getElementById('btnInvia'); btn.disabled = true; btn.innerText = "ELABORAZIONE AGENTE...";
     
-    let fUrl = "";
     try {
+      let fUrl = "";
       if(file) {
-        const p = 'foto/' + Date.now() + '_' + file.name;
-        const storageRef = sRef(storage, p);
-        await uploadBytes(storageRef, file);
-        fUrl = await getDownloadURL(storageRef);
+        const p = 'foto/' + Date.now() + '.jpg';
+        await uploadBytes(sRef(storage, p), file);
+        fUrl = await getDownloadURL(sRef(storage, p));
       }
       await push(ref(db, 'segnalazioni'), {
-        cat: selectedCat,
-        desc: d,
-        lat: currentMarker.getLatLng().lat,
-        lng: currentMarker.getLatLng().lng,
-        fotoUrl: fUrl,
-        status: 'non-risolta',
-        ts: Date.now()
+        cat: selectedCat, desc: d, lat: currentMarker.getLatLng().lat, lng: currentMarker.getLatLng().lng, fotoUrl: fUrl, status: 'non-risolta', ts: Date.now()
       });
       location.reload();
-    } catch (e) {
-      alert("Errore durante l'invio. Riprova.");
-      btn.disabled = false; btn.innerText = "INVIA SEGNALAZIONE";
-    }
+    } catch (e) { alert("Errore!"); btn.disabled = false; }
   };
 </script>
 </body>
