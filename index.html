@@ -24,10 +24,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .cat-btn.active { border-color: var(--accent); background: rgba(224,53,53,0.1); }
 .cat-btn.plus { border-color: var(--blue); color: var(--blue); }
 .cat-btn.plus.active { background: rgba(45,125,232,0.2); }
-textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-family: inherit; }
 .btn-primary { width: 100%; background: var(--accent); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 800; cursor: pointer; margin-bottom: 20px; }
-.report-item { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--accent); }
-.status-select { background: #222; color: white; border: 1px solid var(--border); padding: 5px; border-radius: 4px; font-size: 11px; margin-top: 8px; display: none; }
+.report-item { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--accent); position: relative; }
+.status-select { background: #222; color: white; border: 1px solid var(--border); padding: 5px; border-radius: 4px; font-size: 11px; margin-top: 8px; width: 100%; }
 .badge { font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold; text-transform: uppercase; }
 .badge-rosso { background: var(--accent); } .badge-giallo { background: var(--yellow); color: #000; } .badge-verde { background: var(--green); } .badge-blu { background: var(--blue); }
 </style>
@@ -37,7 +37,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   <div class="logo" onclick="location.reload()">MAGLIE<br><span>SENZA OSTACOLI</span></div>
   <div style="text-align: right;">
     <div style="font-size: 11px; color: #5a6070">UN'APP DI ANGELO GRECO</div>
-    <button onclick="abilitaGestione()" style="font-size: 10px; opacity: 0.5; background:none; border:none; color:white;">🔐 ADMIN</button>
+    <button onclick="abilitaGestione()" style="font-size: 10px; opacity: 0.5; background:none; border:none; color:white; cursor:pointer;">🔐 ADMIN</button>
   </div>
 </div>
 <div id="main">
@@ -50,10 +50,10 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
       <div class="cat-btn" onclick="setCat(this, 'Manutenzione')">⚠️ Manutenzione</div>
       <div class="cat-btn plus" onclick="setCat(this, 'Accessibile')">✅ Luogo OK</div>
     </div>
-    <textarea id="desc" placeholder="Descrivi il problema o il luogo accessibile..."></textarea>
-    <input type="file" id="foto" accept="image/*" style="margin-bottom:15px; font-size:12px;">
-    <button class="btn-primary" id="btnInvia">INVIA</button>
-    <div class="section-title">Feed Recente</div>
+    <textarea id="desc" placeholder="Cosa è successo?"></textarea>
+    <input type="file" id="foto" accept="image/*" style="margin-bottom:15px; font-size:12px; width:100%;">
+    <button class="btn-primary" id="btnInvia">INVIA SEGNALAZIONE</button>
+    <div class="section-title">Segnalazioni Recenti</div>
     <div id="lista"></div>
   </div>
 </div>
@@ -61,7 +61,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-  import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+  import { getStorage, ref as sRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
   const cfg = {
     apiKey: "AIzaSyCBBv6qJW1PdrxLC0s-yjIP96B9SyXORL4",
@@ -80,17 +80,22 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   let selectedCat = 'Architettonica';
   let marker;
   let isAdmin = false;
+  const ADMIN_PASS = "maglie2025"; // <--- QUESTA È LA PASSWORD
 
   const map = L.map('map', {zoomControl: false}).setView([40.1209, 18.2323], 15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
   map.locate({setView: true, maxZoom: 16});
-  map.on('locationfound', e => { marker = L.marker(e.latlng).addTo(map); });
+  map.on('locationfound', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
   map.on('click', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
 
   window.abilitaGestione = () => {
-    if(prompt("Password Admin:") === "maglie2025") {
-      isAdmin = true; alert("Modalità Gestione Attiva");
+    const p = prompt("Password Amministratore:");
+    if(p === ADMIN_PASS) {
+      isAdmin = true;
+      alert("Modalità Admin Attiva! Ora puoi cambiare gli stati e cancellare.");
       document.querySelectorAll('.status-select').forEach(s => s.style.display = 'block');
+    } else {
+      alert("Accesso negato.");
     }
   };
 
@@ -106,36 +111,39 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
         const status = s.status || 'non-risolta';
         const isAccessibile = s.cat === 'Accessibile';
         
-        // Colore del marker
-        let color = '#e03535'; // Rosso
-        if(isAccessibile) color = '#2d7de8'; // Blu
-        else if(status === 'in-carico') color = '#f1c40f'; // Giallo
-        else if(status === 'risolta') color = '#2ecc71'; // Verde
+        let color = '#e03535'; 
+        if(isAccessibile) color = '#2d7de8';
+        else if(status === 'in-carico') color = '#f1c40f';
+        else if(status === 'risolta') color = '#2ecc71';
 
         const icon = L.divIcon({
-          className: 'custom-div-icon',
-          html: `<div style="background-color:${color}; width:12px; height:12px; border-radius:50%; border:2px solid white;"></div>`,
-          iconSize: [12, 12]
+          className: 'custom-icon',
+          html: `<div style="background:${color}; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>`,
+          iconSize: [14, 14]
         });
 
-        L.marker([s.lat, s.lng], {icon}).addTo(map).bindPopup(`<b>${s.cat}</b><br>${s.desc}`);
+        let popup = `<b>${s.cat}</b><br>${s.desc}`;
+        if(s.fotoUrl) popup += `<br><img src="${s.fotoUrl}" style="width:120px; margin-top:5px; border-radius:5px">`;
+
+        L.marker([s.lat, s.lng], {icon}).addTo(map).bindPopup(popup);
 
         const item = document.createElement('div');
         item.className = 'report-item';
         item.style.borderLeftColor = color;
         item.innerHTML = `
-          <div style="display:flex; justify-content:space-between">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
             <strong>${s.cat}</strong>
             <span class="badge badge-${isAccessibile ? 'blu' : status === 'non-risolta' ? 'rosso' : status === 'in-carico' ? 'giallo' : 'verde'}">
               ${isAccessibile ? 'ACCESSIBILE' : status.replace('-', ' ')}
             </span>
           </div>
-          <p style="font-size:12px; margin:5px 0">${s.desc}</p>
-          <select class="status-select" onchange="aggiornaStato('${id}', this.value)" style="${isAdmin ? 'display:block' : 'display:none'}">
-            <option value="non-risolta" ${status==='non-risolta'?'selected':''}>🔴 Non Risolta</option>
-            <option value="in-carico" ${status==='in-carico'?'selected':''}>🟡 In Carico</option>
-            <option value="risolta" ${status==='risolta'?'selected':''}>🟢 Risolta</option>
-            <option value="elimina">🗑 Elimina</option>
+          <p style="font-size:12px; margin:8px 0; color:#ccc;">${s.desc}</p>
+          ${s.fotoUrl ? `<img src="${s.fotoUrl}" style="width:100%; height:100px; object-fit:cover; border-radius:5px; margin-bottom:8px;">` : ''}
+          <select class="status-select" onchange="aggiornaStato('${id}', this.value, '${s.fotoPath || ''}')" style="${isAdmin ? 'display:block' : 'display:none'}">
+            <option value="non-risolta" ${status==='non-risolta'?'selected':''}>🔴 Segnalata (Rosso)</option>
+            <option value="in-carico" ${status==='in-carico'?'selected':''}>🟡 In Carico (Giallo)</option>
+            <option value="risolta" ${status==='risolta'?'selected':''}>🟢 Risolta (Verde)</option>
+            <option value="elimina">🗑 ELIMINA DEFINITIVAMENTE</option>
           </select>
         `;
         lista.appendChild(item);
@@ -143,9 +151,14 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     }
   });
 
-  window.aggiornaStato = async (id, val) => {
+  window.aggiornaStato = async (id, val, fPath) => {
     if(val === 'elimina') {
-      if(confirm("Eliminare definitivamente?")) await remove(ref(db, 'segnalazioni/' + id));
+      if(confirm("Sei sicuro di voler cancellare tutto? Non potrai tornare indietro.")) {
+        await remove(ref(db, 'segnalazioni/' + id));
+        if(fPath) {
+          try { await deleteObject(sRef(storage, fPath)); } catch(e) {}
+        }
+      }
     } else {
       await update(ref(db, 'segnalazioni/' + id), { status: val });
     }
@@ -160,21 +173,32 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   document.getElementById('btnInvia').onclick = async () => {
     const d = document.getElementById('desc').value;
     const file = document.getElementById('foto').files[0];
-    if(!marker || !d) return alert("Inserisci posizione e testo!");
+    if(!marker || !d) return alert("Devi toccare la mappa e scrivere una descrizione!");
     
-    document.getElementById('btnInvia').innerText = "INVIO...";
-    let fotoUrl = "";
-    if(file) {
-      const sRefImg = sRef(storage, 'foto/'+Date.now());
-      await uploadBytes(sRefImg, file);
-      fotoUrl = await getDownloadURL(sRefImg);
-    }
+    const b = document.getElementById('btnInvia');
+    b.innerText = "INVIO IN CORSO...";
+    b.disabled = true;
 
-    await push(ref(db, 'segnalazioni'), {
-      cat: selectedCat, desc: d, lat: marker.getLatLng().lat, lng: marker.getLatLng().lng, 
-      fotoUrl, status: 'non-risolta', ts: Date.now()
-    });
-    location.reload();
+    let fUrl = "";
+    let fPath = "";
+
+    try {
+      if(file) {
+        fPath = 'foto/' + Date.now() + "_" + file.name;
+        const storageRef = sRef(storage, fPath);
+        await uploadBytes(storageRef, file);
+        fUrl = await getDownloadURL(storageRef);
+      }
+
+      await push(ref(db, 'segnalazioni'), {
+        cat: selectedCat, desc: d, lat: marker.getLatLng().lat, lng: marker.getLatLng().lng, 
+        fotoUrl: fUrl, fotoPath: fPath, status: 'non-risolta', ts: Date.now()
+      });
+      location.reload();
+    } catch (e) {
+      alert("Errore nell'invio. Hai attivato lo Storage su Firebase?");
+      b.innerText = "INVIA SEGNALAZIONE"; b.disabled = false;
+    }
   };
 </script>
 </body>
