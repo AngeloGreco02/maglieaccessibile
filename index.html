@@ -13,13 +13,13 @@
 body { background: var(--bg); color: var(--text); font-family: var(--font-body); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
 #topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
-.logo { font-weight: 800; font-size: 18px; text-transform: uppercase; } .logo span { color: var(--accent); }
+.logo { font-weight: 800; font-size: 18px; text-transform: uppercase; cursor: pointer; } .logo span { color: var(--accent); }
 
 #main { display: flex; flex: 1; overflow: hidden; flex-direction: column; }
 @media (min-width: 768px) { #main { flex-direction: row; } }
 
 #map-wrap { flex: 1; min-height: 40vh; position: relative; display: flex; flex-direction: column; }
-#map { flex: 1; width: 100%; z-index: 1; }
+#map { flex: 1; width: 100%; z-index: 1; background: #1a1a1a; }
 
 #filter-container { background: var(--surface); padding: 10px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; z-index: 999; flex-wrap: wrap; }
 .dropbtn, .nav-btn { background: rgba(255,255,255,0.05); color: white; padding: 8px 12px; font-size: 10px; font-weight: 800; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; }
@@ -37,7 +37,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
 
 .report-item { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--accent); }
 .status-select { background: #222; color: white; border: 1px solid var(--border); padding: 6px; border-radius: 4px; font-size: 11px; margin-top: 8px; width: 100%; display: none; }
-.info-box { font-size: 10px; color: #888; background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px; margin-top: 20px; border: 1px solid var(--border); }
+.info-box { font-size: 10px; color: #888; background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px; margin-top: 20px; border: 1px solid var(--border); line-height: 1.4; }
 
 .custom-pin { width: 32px; height: 32px; border-radius: 50% 50% 50% 0; position: absolute; transform: rotate(-45deg); left: 50%; top: 50%; margin: -32px 0 0 -16px; border: 2px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; }
 .pin-icon { transform: rotate(45deg); font-size: 16px; display: block; }
@@ -61,11 +61,11 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   <div id="map-wrap">
     <div id="filter-container">
         <select id="filterSelect" class="dropbtn" onchange="applyFilter(this.value)">
-            <option value="TUTTE">🔍 TUTTE</option>
+            <option value="TUTTE">🔍 TUTTE LE SEGNALAZIONI</option>
             <option value="Architettonica">♿ BARRIERE</option>
-            <option value="Occupazione">🚗 AUTO</option>
+            <option value="Occupazione">🚗 AUTO / OCCUPAZIONE</option>
             <option value="Manutenzione">⚠️ MANUTENZIONE</option>
-            <option value="Accessibile">✅ LUOGHI OK</option>
+            <option value="Accessibile">✅ LUOGHI ACCESSIBILI</option>
         </select>
         <button id="toggleBtn" class="nav-btn" onclick="toggleLocation()">📍 VAI A MORIGINO</button>
     </div>
@@ -79,18 +79,17 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
       <div class="cat-btn" onclick="setCat(this, 'Manutenzione')">⚠️ Manutenzione</div>
       <div class="cat-btn" onclick="setCat(this, 'Accessibile')">✅ Luogo OK</div>
     </div>
-    <textarea id="desc" rows="3" placeholder="Descrivi il punto..."></textarea>
+    <textarea id="desc" rows="3" placeholder="Descrivi il problema o il luogo..."></textarea>
     <input type="file" id="foto" accept="image/*" style="margin-bottom:10px; font-size:11px; width:100%;">
-    <div style="font-size: 9px; color: #888; margin-bottom: 10px; font-style: italic;">⚠️ Non fotografare targhe o volti.</div>
+    <div style="font-size: 9px; color: #888; margin-bottom: 10px; font-style: italic;">⚠️ Privacy: non fotografare targhe o volti.</div>
     <button class="btn-primary" id="btnInvia">INVIA SEGNALAZIONE</button>
     
     <div class="info-box">
-        <strong>CHI SIAMO</strong><br>
-        Iniziativa dell'Associazione <b>C.F.P.</b><br>
-        Mappiamo Maglie e Morigino per tutti. <br>
-      Progetto sociale senza scopo di lucro gestito da un'associazione locale.
+        <strong>IL PROGETTO</strong><br>
+        Iniziativa dell'Associazione <b>Chi si ferma è perduto (C.F.P.)</b>.<br>
+        Mappatura partecipata per rendere Maglie e Morigino accessibili a tutti.
     </div>
-    <button class="nav-btn" id="exportBtn" onclick="esportaDati()" style="display:none; margin-top:10px; width:100%;">📊 REPORT CSV</button>
+    <button class="nav-btn" id="exportBtn" onclick="esportaDati()" style="display:none; margin-top:10px; width:100%;">📊 SCARICA REPORT CSV</button>
     <div id="lista" style="margin-top:20px;"></div>
   </div>
 </div>
@@ -125,27 +124,59 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   let rawData = {};
   let isAdmin = false;
 
-  const map = L.map('map').setView([40.1194, 18.2997], 15);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  // RECINTO GEOGRAFICO (MAGLIE E MORIGINO)
+  const maglieBounds = L.latLngBounds(
+    L.latLng(40.0800, 18.2500), 
+    L.latLng(40.1550, 18.3500)
+  );
+
+  const map = L.map('map', {
+    maxBounds: maglieBounds,
+    maxBoundsViscosity: 1.0
+  }).setView([40.1194, 18.2997], 15);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    minZoom: 13
+  }).addTo(map);
+  
   markersLayer.addTo(map);
 
+  // RICERCA VIA
   L.Control.geocoder({ defaultMarkGeocode: false, placeholder: "Cerca via..." }).on('markgeocode', e => {
     map.setView(e.geocode.center, 17);
     if(currentMarker) map.removeLayer(currentMarker);
     currentMarker = L.marker(e.geocode.center).addTo(map);
   }).addTo(map);
 
-  map.on('click', e => { if(currentMarker) map.removeLayer(currentMarker); currentMarker = L.marker(e.latlng).addTo(map); });
+  // CLICK SULLA MAPPA
+  map.on('click', e => {
+    if(currentMarker) map.removeLayer(currentMarker);
+    currentMarker = L.marker(e.latlng).addTo(map);
+  });
 
   window.toggleLocation = () => {
     const btn = document.getElementById('toggleBtn');
-    if (!isAtMorigino) { map.flyTo([40.1417, 18.3098], 17); btn.innerText = "📍 RITORNA A MAGLIE"; isAtMorigino = true; }
-    else { map.flyTo([40.1194, 18.2997], 15); btn.innerText = "📍 VAI A MORIGINO"; isAtMorigino = false; }
+    if (!isAtMorigino) {
+      map.flyTo([40.1417, 18.3098], 17);
+      btn.innerText = "📍 RITORNA A MAGLIE"; isAtMorigino = true;
+    } else {
+      map.flyTo([40.1194, 18.2997], 15);
+      btn.innerText = "📍 VAI A MORIGINO"; isAtMorigino = false;
+    }
   };
 
-  window.setCat = (el, cat) => { document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active')); el.classList.add('active'); selectedCat = cat; };
+  window.setCat = (el, cat) => {
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active'); selectedCat = cat;
+  };
 
-  window.abilitaGestione = () => { if(prompt("Password Admin:") === "maglie2025") { isAdmin = true; document.getElementById('exportBtn').style.display='block'; renderData(); } };
+  window.abilitaGestione = () => {
+    if(prompt("Password Admin:") === "maglie2025") {
+      isAdmin = true;
+      document.getElementById('exportBtn').style.display='block';
+      renderData();
+    }
+  };
 
   window.applyFilter = (val) => { activeFilter = val; renderData(); };
 
@@ -153,56 +184,89 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
 
   function renderData() {
     const lista = document.getElementById('lista');
-    lista.innerHTML = ""; markersLayer.clearLayers();
+    lista.innerHTML = "";
+    markersLayer.clearLayers();
+
     Object.keys(rawData).reverse().forEach(id => {
       const s = rawData[id];
       if (activeFilter !== 'TUTTE' && s.cat !== activeFilter) return;
+
       const color = s.cat === 'Accessibile' ? '#2d7de8' : (s.status === 'risolta' ? '#2ecc71' : '#e03535');
-      const iconChar = s.cat === 'Occupazione' ? '🚗' : (s.cat === 'Manutenzione' ? '⚠️' : (s.cat === 'Accessibile' ? '✅' : '♿'));
-      
-      const icon = L.divIcon({ className:'custom-div-icon', html:`<div class="custom-pin" style="background:${color}"><span class="pin-icon">${iconChar}</span></div>`, iconSize:[32,42], iconAnchor:[16,42] });
+      let iconChar = '♿';
+      if(s.cat === 'Occupazione') iconChar = '🚗';
+      if(s.cat === 'Manutenzione') iconChar = '⚠️';
+      if(s.cat === 'Accessibile') iconChar = '✅';
+
+      const icon = L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div class="custom-pin" style="background:${color};"><span class="pin-icon">${iconChar}</span></div>`,
+        iconSize: [32, 42], iconAnchor: [16, 42]
+      });
+
       L.marker([s.lat, s.lng], {icon}).addTo(markersLayer).bindPopup(`<b>${s.cat}</b><br>${s.desc}`);
 
       const item = document.createElement('div');
       item.className = 'report-item';
       item.style.borderLeftColor = color;
-      item.innerHTML = `<strong>${iconChar} ${s.cat}</strong><p style="font-size:11px;">${s.desc}</p>
-        ${s.fotoUrl ? `<img src="${s.fotoUrl}" style="width:100%; border-radius:5px; margin-top:5px;">` : ''}
+      item.innerHTML = `
+        <strong>${iconChar} ${s.cat}</strong>
+        <p style="font-size:11px;">${s.desc}</p>
+        ${s.fotoUrl ? `<img src="${s.fotoUrl}" style="width:100%; border-radius:5px; margin-top:5px; cursor:pointer;" onclick="window.open('${s.fotoUrl}')">` : ''}
         <select class="status-select" style="${isAdmin?'display:block':''}" onchange="updateSt('${id}', this.value)">
           <option value="non-risolta" ${s.status==='non-risolta'?'selected':''}>🔴 Segnalata</option>
           <option value="risolta" ${s.status==='risolta'?'selected':''}>🟢 Risolta</option>
           <option value="elimina">🗑 Elimina</option>
-        </select>`;
+        </select>
+      `;
       lista.appendChild(item);
     });
   }
 
   window.updateSt = async (id, val) => {
-    if(val==='elimina') { if(confirm("Elimina?")) await remove(ref(db, 'segnalazioni/'+id)); }
+    if(val==='elimina') { if(confirm("Confermi eliminazione?")) await remove(ref(db, 'segnalazioni/'+id)); }
     else await update(ref(db, 'segnalazioni/'+id), {status:val});
   };
 
   window.esportaDati = () => {
-    let csv = "Categoria,Descrizione,Stato\n";
-    Object.values(rawData).forEach(s => { csv += `"${s.cat}","${s.desc}","${s.status}"\n`; });
+    let csv = "Categoria,Descrizione,Latitudine,Longitudine,Stato\n";
+    Object.values(rawData).forEach(s => {
+      csv += `"${s.cat}","${s.desc}","${s.lat}","${s.lng}","${s.status}"\n`;
+    });
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'report_maglie.csv'; a.click();
+    const a = document.createElement('a'); a.href = url; a.download = 'report_maglie_accessibile.csv'; a.click();
   };
 
   document.getElementById('btnInvia').onclick = async () => {
     const d = document.getElementById('desc').value.trim();
     const file = document.getElementById('foto').files[0];
-    if(!currentMarker || !d) return alert("Punta la mappa e scrivi!");
-    const btn = document.getElementById('btnInvia'); btn.disabled = true; btn.innerText = "INVIO...";
+    if(!currentMarker || !d) return alert("Per favore, segna un punto sulla mappa e scrivi una descrizione.");
+    
+    const btn = document.getElementById('btnInvia');
+    btn.disabled = true; btn.innerText = "INVIO IN CORSO...";
+    
     let fUrl = "";
-    if(file) {
-      const p = 'foto/'+Date.now()+'.jpg';
-      await uploadBytes(sRef(storage, p), file);
-      fUrl = await getDownloadURL(sRef(storage, p));
+    try {
+      if(file) {
+        const p = 'foto/' + Date.now() + '_' + file.name;
+        const storageRef = sRef(storage, p);
+        await uploadBytes(storageRef, file);
+        fUrl = await getDownloadURL(storageRef);
+      }
+      await push(ref(db, 'segnalazioni'), {
+        cat: selectedCat,
+        desc: d,
+        lat: currentMarker.getLatLng().lat,
+        lng: currentMarker.getLatLng().lng,
+        fotoUrl: fUrl,
+        status: 'non-risolta',
+        ts: Date.now()
+      });
+      location.reload();
+    } catch (e) {
+      alert("Errore durante l'invio. Riprova.");
+      btn.disabled = false; btn.innerText = "INVIA SEGNALAZIONE";
     }
-    await push(ref(db, 'segnalazioni'), { cat:selectedCat, desc:d, lat:currentMarker.getLatLng().lat, lng:currentMarker.getLatLng().lng, fotoUrl:fUrl, status:'non-risolta', ts:Date.now() });
-    location.reload();
   };
 </script>
 </body>
