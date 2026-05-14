@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <style>
-        :root { --bg: #0a0c10; --surface: #111318; --border: rgba(255,255,255,.07); --text: #e8eaf0; --accent: #e03535; --blue: #2d7de8; --green: #2ecc71; }
+        :root { --bg: #0a0c10; --surface: #111318; --border: rgba(255,255,255,.07); --text: #e8eaf0; --accent: #e03535; --blue: #2d7de8; --green: #2ecc71; --orange: #f39c12; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
         body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         #topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 1001; }
@@ -28,8 +28,11 @@
         textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 13px; resize: none; }
         .btn-send { width: 100%; background: var(--accent); color: #fff; border: none; padding: 15px; border-radius: 10px; font-weight: 800; cursor: pointer; }
         .report-item { background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--accent); }
-        .custom-pin { width: 32px; height: 32px; border-radius: 50% 50% 50% 0; position: absolute; transform: rotate(-45deg); left: 50%; top: 50%; margin: -32px 0 0 -16px; border: 2px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; }
-        .pin-icon { transform: rotate(45deg); font-size: 16px; display: block; }
+
+        /* PIN DEFINITIVO */
+        .custom-pin { width: 34px; height: 34px; border-radius: 50% 50% 50% 0; position: absolute; transform: rotate(-45deg); left: 50%; top: 50%; margin: -34px 0 0 -17px; border: 2px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+        .pin-icon { transform: rotate(45deg); font-size: 16px; display: block; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3)); }
+        
         .leaflet-control-geocoder { background: #1a1a1a !important; border: 1px solid var(--border) !important; border-radius: 8px !important; }
         .leaflet-control-geocoder-form input { color: white !important; background: transparent !important; }
     </style>
@@ -47,8 +50,8 @@
 <div id="main">
     <div id="map-wrap">
         <div id="controls">
-            <select id="filterSelect" class="btn" onchange="window.filtra(this.value)">
-                <option value="TUTTE">🔍 TUTTE</option>
+            <select id="filterSelect" class="btn" onchange="window.filtraMappa(this.value)">
+                <option value="TUTTE">🔍 FILTRA: TUTTE</option>
                 <option value="Barriera">♿ BARRIERE</option>
                 <option value="Auto">🚗 AUTO</option>
                 <option value="Guasto">⚠️ GUASTI</option>
@@ -127,7 +130,11 @@
 
     window.abilitaAdmin = () => { if(prompt("Password:") === "maglie2025") { isAdmin = true; renderData(); } };
 
-    window.filtra = (val) => { activeFilter = val; renderData(); };
+    // FUNZIONE FILTRO CORRETTA
+    window.filtraMappa = (val) => {
+        activeFilter = val;
+        renderData();
+    };
 
     onValue(ref(db, 'segnalazioni'), snap => {
         rawData = snap.val() || {};
@@ -136,22 +143,32 @@
 
     function renderData() {
         const lista = document.getElementById('lista');
-        lista.innerHTML = ""; markersLayer.clearLayers();
+        lista.innerHTML = ""; 
+        markersLayer.clearLayers();
+        
         Object.keys(rawData).reverse().forEach(id => {
             const s = rawData[id];
+            
+            // Applica Filtro
             if (activeFilter !== "TUTTE" && s.cat !== activeFilter) return;
 
-            const color = s.cat === 'OK' ? '#2ecc71' : (s.cat === 'Auto' ? '#f39c12' : '#e03535');
-            const iconChar = s.cat === 'Auto' ? '🚗' : (s.cat === 'Guasto' ? '⚠️' : (s.cat === 'OK' ? '✅' : '♿'));
-            
-            const icon = L.divIcon({
+            // Determina Colore e Icona in base alla categoria salvata
+            let color = "var(--accent)";
+            let iconChar = "♿";
+
+            if (s.cat === 'Auto') { color = "var(--orange)"; iconChar = "🚗"; }
+            else if (s.cat === 'Guasto') { color = "#7f8c8d"; iconChar = "⚠️"; }
+            else if (s.cat === 'OK') { color = "var(--green)"; iconChar = "✅"; }
+
+            const customIcon = L.divIcon({
                 className: 'custom-div-icon',
                 html: `<div class="custom-pin" style="background:${color}"><span class="pin-icon">${iconChar}</span></div>`,
-                iconSize: [32, 42], iconAnchor: [16, 42]
+                iconSize: [34, 44], iconAnchor: [17, 44]
             });
 
-            L.marker([s.lat, s.lng], {icon}).addTo(markersLayer).bindPopup(s.desc);
+            L.marker([s.lat, s.lng], {icon: customIcon}).addTo(markersLayer).bindPopup(`<b>${s.cat}</b><br>${s.desc}`);
 
+            // Lista laterale
             const div = document.createElement('div');
             div.className = 'report-item'; div.style.borderLeftColor = color;
             div.innerHTML = `<b>${iconChar} ${s.cat}</b><p style="font-size:11px; margin-top:4px;">${s.desc}</p>
@@ -168,6 +185,7 @@
         const file = document.getElementById('fotoFile').files[0];
         if(!marker || !d) return alert("Punta sulla mappa e scrivi!");
         const btn = document.getElementById('btnInvia'); btn.disabled = true; btn.innerText = "CARICAMENTO...";
+        
         let url = "";
         if(file) {
             const form = new FormData(); form.append("image", file);
@@ -176,6 +194,7 @@
                 const json = await res.json(); url = json.data.url;
             } catch(e) { console.error("Errore foto"); }
         }
+
         try {
             await push(ref(db, 'segnalazioni'), {
                 cat: selectedCat, desc: d, lat: marker.getLatLng().lat, lng: marker.getLatLng().lng, fotoUrl: url, ts: Date.now()
