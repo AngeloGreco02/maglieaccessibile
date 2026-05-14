@@ -13,42 +13,46 @@
 body { background: var(--bg); color: var(--text); font-family: var(--font-body); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
 #topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
-.logo { font-weight: 800; font-size: 18px; text-transform: uppercase; cursor: pointer; } .logo span { color: var(--accent); }
+.logo { font-weight: 800; font-size: 16px; text-transform: uppercase; } .logo span { color: var(--accent); }
 
 #main { display: flex; flex: 1; overflow: hidden; flex-direction: column; }
 @media (min-width: 768px) { #main { flex-direction: row; } }
 
 #map-wrap { flex: 1; min-height: 40vh; position: relative; display: flex; flex-direction: column; }
-#map { flex: 1; width: 100%; z-index: 1; background: #1a1a1a; }
+#map { flex: 1; width: 100%; z-index: 1; }
 
-#filter-container { background: var(--surface); padding: 10px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; z-index: 999; flex-wrap: wrap; }
+#filter-container { background: var(--surface); padding: 10px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; z-index: 999; }
 .dropbtn, .nav-btn, .gps-btn { background: rgba(255,255,255,0.05); color: white; padding: 8px 12px; font-size: 10px; font-weight: 800; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; }
 .nav-btn { background: var(--blue); border: none; }
 .gps-btn { background: var(--green); border: none; }
 
-#sidebar { background: var(--surface); flex: 1; overflow-y: auto; padding: 15px; border-top: 2px solid var(--border); z-index: 2; }
+#sidebar { background: var(--surface); flex: 1; overflow-y: auto; padding: 15px; border-top: 2px solid var(--border); z-index: 2; display: flex; flex-direction: column; }
 @media (min-width: 768px) { #sidebar { width: 400px; flex: none; border-left: 1px solid var(--border); } }
 
-.cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-.cat-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; font-size: 11px; cursor: pointer; text-align: center; }
+/* STILE CHAT AGENTE */
+#chat-box { flex: 1; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 10px; overflow-y: auto; margin-bottom: 10px; border: 1px solid var(--border); min-height: 200px; }
+.msg { margin-bottom: 8px; padding: 8px 12px; border-radius: 12px; font-size: 13px; line-height: 1.4; max-width: 85%; }
+.bot { background: var(--blue); color: white; align-self: flex-start; }
+.user { background: var(--border); color: white; align-self: flex-end; margin-left: auto; }
+
+.input-area { display: flex; gap: 5px; margin-bottom: 10px; }
+#user-input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: white; padding: 10px; border-radius: 20px; outline: none; }
+
+.cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 10px; }
+.cat-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 8px; border-radius: 8px; font-size: 10px; cursor: pointer; text-align: center; }
 .cat-btn.active { border-color: var(--accent); background: rgba(224,53,53,0.1); }
 
-textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-family: inherit; resize: none; font-size: 13px; }
-.btn-primary { width: 100%; background: var(--accent); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 800; cursor: pointer; }
-
-.report-item { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--accent); }
-.status-select { background: #222; color: white; border: 1px solid var(--border); padding: 6px; border-radius: 4px; font-size: 11px; margin-top: 8px; width: 100%; display: none; }
-
 .custom-pin { width: 32px; height: 32px; border-radius: 50% 50% 50% 0; position: absolute; transform: rotate(-45deg); left: 50%; top: 50%; margin: -32px 0 0 -16px; border: 2px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; }
-.pin-icon { transform: rotate(45deg); font-size: 16px; display: block; }
-.assistente-badge { font-size: 9px; background: var(--blue); color: white; padding: 2px 6px; border-radius: 4px; margin-bottom: 5px; display: inline-block; }
+.pin-icon { transform: rotate(45deg); font-size: 16px; }
 </style>
 </head>
 <body>
 
 <div id="topbar">
-  <div class="logo" onclick="location.reload()">MAGLIE<span> SENZA BARRIERE</span></div>
+  <div class="logo">MAGLIE<span> SENZA BARRIERE</span></div>
   <div style="text-align: right;">
+    <div style="font-size: 10px; color: #5a6070">APP DI ANGELO GRECO</div>
+    <div style="font-size: 9px; color: var(--accent); font-weight: 700;">ASSOCIAZIONE C.F.P.</div>
     <button onclick="abilitaGestione()" style="font-size: 10px; background:none; border:none; color:#5a6070; cursor:pointer;">🔐 ADMIN</button>
   </div>
 </div>
@@ -57,38 +61,45 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   <div id="map-wrap">
     <div id="filter-container">
         <select id="filterSelect" class="dropbtn" onchange="applyFilter(this.value)">
-            <option value="TUTTE">TUTTE</option>
+            <option value="TUTTE">TUTTE LE SEGNALAZIONI</option>
             <option value="Architettonica">♿ BARRIERE</option>
             <option value="Occupazione">🚗 AUTO</option>
             <option value="Manutenzione">⚠️ MANUTENZIONE</option>
             <option value="Accessibile">✅ LUOGHI OK</option>
         </select>
-        <button class="nav-btn" onclick="toggleLocation()">📍 MORIGINO</button>
+        <button id="toggleBtn" class="nav-btn" onclick="toggleLocation()">📍 VAI A MORIGINO</button>
         <button class="gps-btn" onclick="trovaGPS()">🎯 GPS</button>
     </div>
     <div id="map"></div>
   </div>
 
   <div id="sidebar">
-    <div class="assistente-badge">🤖 ASSISTENTE C.F.P. ATTIVO</div>
+    <div style="font-size: 11px; color: var(--blue); font-weight: 800; margin-bottom: 5px;">🤖 ASSISTENTE INTELLIGENTE C.F.P.</div>
+    
+    <div id="chat-box">
+        <div class="msg bot">Ciao! Sono l'assistente dell'Associazione C.F.P. Raccontami cosa hai notato a Maglie o Morigino, ti aiuterò io a creare la segnalazione.</div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="user-input" placeholder="Scrivi qui all'agente...">
+        <button onclick="userChat()" class="nav-btn" style="border-radius: 50%; width: 40px; height: 40px; padding: 0;">🚀</button>
+    </div>
+
     <div class="cat-grid">
       <div class="cat-btn active" onclick="setCat(this, 'Architettonica')">♿ Barriera</div>
-      <div class="cat-btn" onclick="setCat(this, 'Occupazione')">🚗 Occupazione</div>
+      <div class="cat-btn" onclick="setCat(this, 'Occupazione')">🚗 Auto</div>
       <div class="cat-btn" onclick="setCat(this, 'Manutenzione')">⚠️ Manutenzione</div>
       <div class="cat-btn" onclick="setCat(this, 'Accessibile')">✅ Luogo OK</div>
     </div>
-    <textarea id="desc" rows="4" placeholder="Descrivi qui il problema. L'agente strutturerà la tua segnalazione automaticamente..."></textarea>
-    <input type="file" id="foto" accept="image/*" style="margin-bottom:10px; font-size:11px; width:100%;">
-    <button class="btn-primary" id="btnInvia">INVIA SEGNALAZIONE</button>
+
+    <input type="file" id="foto" accept="image/*" style="margin-bottom:10px; font-size:10px;">
+    <button class="btn-primary" id="btnInvia" disabled>INVIA SEGNALAZIONE</button>
     
-    <button class="nav-btn" id="exportBtn" onclick="esportaDati()" style="display:none; margin-top:10px; width:100%;">📊 REPORT CSV</button>
-    <div id="lista" style="margin-top:20px;"></div>
+    <div id="lista" style="margin-top:15px;"></div>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -115,47 +126,54 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   let markersLayer = L.layerGroup();
   let rawData = {};
   let isAdmin = false;
+  let chatContext = "";
 
-  const maglieBounds = L.latLngBounds(L.latLng(40.0800, 18.2500), L.latLng(40.1550, 18.3500));
-  const map = L.map('map', { maxBounds: maglieBounds, maxBoundsViscosity: 1.0 }).setView([40.1194, 18.2997], 15);
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { minZoom: 13 }).addTo(map);
+  const map = L.map('map').setView([40.1194, 18.2997], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
   markersLayer.addTo(map);
 
-  L.Control.geocoder({ defaultMarkGeocode: false, placeholder: "Cerca..." }).on('markgeocode', e => {
-    map.setView(e.geocode.center, 17);
-    updateMarker(e.geocode.center);
-  }).addTo(map);
+  map.on('click', e => { if(currentMarker) map.removeLayer(currentMarker); currentMarker = L.marker(e.latlng).addTo(map); checkReady(); });
 
-  map.on('click', e => updateMarker(e.latlng));
-
-  function updateMarker(latlng) {
-    if(currentMarker) map.removeLayer(currentMarker);
-    currentMarker = L.marker(latlng).addTo(map);
-  }
-
-  // FUNZIONE GPS
-  window.trovaGPS = () => {
-    map.locate({setView: true, maxZoom: 17});
-  };
-  map.on('locationfound', e => updateMarker(e.latlng));
-  map.on('locationerror', () => alert("Impossibile trovare la posizione. Controlla i permessi GPS."));
+  window.trovaGPS = () => map.locate({setView: true, maxZoom: 17});
+  map.on('locationfound', e => { if(currentMarker) map.removeLayer(currentMarker); currentMarker = L.marker(e.latlng).addTo(map); checkReady(); });
 
   window.toggleLocation = () => {
-    if (!isAtMorigino) { map.flyTo([40.1417, 18.3098], 17); isAtMorigino = true; }
-    else { map.flyTo([40.1194, 18.2997], 15); isAtMorigino = false; }
+    const btn = document.getElementById('toggleBtn');
+    if (!isAtMorigino) { map.flyTo([40.1417, 18.3098], 17); btn.innerText = "📍 RITORNA A MAGLIE"; isAtMorigino = true; }
+    else { map.flyTo([40.1194, 18.2997], 15); btn.innerText = "📍 VAI A MORIGINO"; isAtMorigino = false; }
   };
+
+  // LOGICA CHAT AGENTE
+  window.userChat = () => {
+    const input = document.getElementById('user-input');
+    const box = document.getElementById('chat-box');
+    const val = input.value.trim();
+    if(!val) return;
+
+    box.innerHTML += `<div class="msg user">${val}</div>`;
+    chatContext += val + " ";
+    input.value = "";
+
+    setTimeout(() => {
+        let reply = "Capisco. Puoi dirmi anche se questo problema si trova vicino a qualche negozio o punto di riferimento conosciuto?";
+        if(chatContext.length > 20) {
+            reply = "Grazie per queste informazioni preziose. Ho preparato la bozza. Ora tocca un punto sulla mappa e premi INVIA per pubblicare.";
+            document.getElementById('btnInvia').disabled = false;
+        }
+        box.innerHTML += `<div class="msg bot">${reply}</div>`;
+        box.scrollTop = box.scrollHeight;
+    }, 1000);
+  };
+
+  function checkReady() { if(chatContext.length > 10 && currentMarker) document.getElementById('btnInvia').disabled = false; }
 
   window.setCat = (el, cat) => {
     document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
     el.classList.add('active'); selectedCat = cat;
   };
 
-  window.abilitaGestione = () => {
-    if(prompt("Password Admin:") === "maglie2025") { isAdmin = true; document.getElementById('exportBtn').style.display='block'; renderData(); }
-  };
-
-  window.applyFilter = (val) => { activeFilter = val; renderData(); };
+  window.abilitaGestione = () => { if(prompt("Password Admin:") === "maglie2025") { isAdmin = true; renderData(); } };
+  window.applyFilter = (f) => { activeFilter = f; renderData(); };
 
   onValue(ref(db, 'segnalazioni'), snap => { rawData = snap.val() || {}; renderData(); });
 
@@ -167,19 +185,15 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
       if (activeFilter !== 'TUTTE' && s.cat !== activeFilter) return;
       const color = s.cat === 'Accessibile' ? '#2d7de8' : (s.status === 'risolta' ? '#2ecc71' : '#e03535');
       const iconChar = s.cat === 'Occupazione' ? '🚗' : (s.cat === 'Manutenzione' ? '⚠️' : (s.cat === 'Accessibile' ? '✅' : '♿'));
-      
       const icon = L.divIcon({ className:'custom-div-icon', html:`<div class="custom-pin" style="background:${color}"><span class="pin-icon">${iconChar}</span></div>`, iconSize:[32,42], iconAnchor:[16,42] });
       L.marker([s.lat, s.lng], {icon}).addTo(markersLayer).bindPopup(`<b>${s.cat}</b><br>${s.desc}`);
-
       const item = document.createElement('div');
       item.className = 'report-item';
       item.style.borderLeftColor = color;
       item.innerHTML = `<strong>${iconChar} ${s.cat}</strong><p style="font-size:11px;">${s.desc}</p>
         ${s.fotoUrl ? `<img src="${s.fotoUrl}" style="width:100%; border-radius:5px; margin-top:5px;">` : ''}
         <select class="status-select" style="${isAdmin?'display:block':''}" onchange="updateSt('${id}', this.value)">
-          <option value="non-risolta" ${s.status==='non-risolta'?'selected':''}>Segnalata</option>
-          <option value="risolta" ${s.status==='risolta'?'selected':''}>Risolta</option>
-          <option value="elimina">🗑 Elimina</option>
+          <option value="non-risolta">🔴 Segnalata</option><option value="risolta">🟢 Risolta</option><option value="elimina">🗑 Elimina</option>
         </select>`;
       lista.appendChild(item);
     });
@@ -190,35 +204,17 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     else await update(ref(db, 'segnalazioni/'+id), {status:val});
   };
 
-  // AGENTE INTELLIGENTE: STRUTTURA IL TESTO
-  function agenteStrutturaDati(testo) {
-    if (testo.length < 5) return testo;
-    const ora = new Date().toLocaleTimeString('it-IT', {hour: '2-digit', minute:'2-digit'});
-    return `[SEGNALAZIONE ASSISTITA] - Ore ${ora}\nDETTAGLIO: ${testo}\nSTATO RILEVATO: Da verificare sul campo.`;
-  }
-
   document.getElementById('btnInvia').onclick = async () => {
-    let d = document.getElementById('desc').value.trim();
     const file = document.getElementById('foto').files[0];
-    if(!currentMarker || !d) return alert("Punta la mappa e scrivi!");
-    
-    // L'agente interviene qui
-    d = agenteStrutturaDati(d);
-
-    const btn = document.getElementById('btnInvia'); btn.disabled = true; btn.innerText = "ELABORAZIONE AGENTE...";
-    
-    try {
-      let fUrl = "";
-      if(file) {
-        const p = 'foto/' + Date.now() + '.jpg';
-        await uploadBytes(sRef(storage, p), file);
-        fUrl = await getDownloadURL(sRef(storage, p));
-      }
-      await push(ref(db, 'segnalazioni'), {
-        cat: selectedCat, desc: d, lat: currentMarker.getLatLng().lat, lng: currentMarker.getLatLng().lng, fotoUrl: fUrl, status: 'non-risolta', ts: Date.now()
-      });
-      location.reload();
-    } catch (e) { alert("Errore!"); btn.disabled = false; }
+    const btn = document.getElementById('btnInvia'); btn.disabled = true; btn.innerText = "PUBBLICAZIONE...";
+    let fUrl = "";
+    if(file) {
+      const p = 'foto/'+Date.now()+'.jpg';
+      await uploadBytes(sRef(storage, p), file);
+      fUrl = await getDownloadURL(sRef(storage, p));
+    }
+    await push(ref(db, 'segnalazioni'), { cat:selectedCat, desc: chatContext, lat:currentMarker.getLatLng().lat, lng:currentMarker.getLatLng().lng, fotoUrl:fUrl, status:'non-risolta', ts:Date.now() });
+    location.reload();
   };
 </script>
 </body>
