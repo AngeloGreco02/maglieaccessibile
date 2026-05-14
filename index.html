@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
-:root { --bg: #0a0c10; --surface: #111318; --border: rgba(255,255,255,.07); --text: #e8eaf0; --accent: #e03535; --font-body: 'Barlow', sans-serif; }
+:root { --bg: #0a0c10; --surface: #111318; --border: rgba(255,255,255,.07); --text: #e8eaf0; --accent: #e03535; --font-body: 'Barlow', sans-serif; --blue: #2d7de8; --yellow: #f1c40f; --green: #2ecc71; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font-family: var(--font-body); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 #topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
@@ -18,15 +18,18 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 #map { height: 100%; width: 100%; }
 #sidebar { background: var(--surface); flex: 1; overflow-y: auto; padding: 15px; border-top: 2px solid var(--border); }
 @media (min-width: 768px) { #sidebar { width: 400px; flex: none; border-left: 1px solid var(--border); } }
-.section-title { font-size: 14px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; font-weight: 800; display: flex; justify-content: space-between; }
+.section-title { font-size: 14px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; font-weight: 800; }
 .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
 .cat-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 10px; border-radius: 8px; font-size: 11px; cursor: pointer; text-align: center; }
 .cat-btn.active { border-color: var(--accent); background: rgba(224,53,53,0.1); }
-textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; min-height: 80px; }
-.btn-primary { width: 100%; background: var(--accent); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 800; cursor: pointer; font-size: 16px; margin-bottom: 20px; }
-.admin-btn { font-size: 10px; color: var(--muted); background: none; border: 1px solid var(--border); padding: 2px 5px; border-radius: 4px; cursor: pointer; }
-.report-item { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border); font-size: 13px; }
-.delete-btn { background: #ff4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; margin-top: 5px; cursor: pointer; display: none; }
+.cat-btn.plus { border-color: var(--blue); color: var(--blue); }
+.cat-btn.plus.active { background: rgba(45,125,232,0.2); }
+textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+.btn-primary { width: 100%; background: var(--accent); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 800; cursor: pointer; margin-bottom: 20px; }
+.report-item { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--accent); }
+.status-select { background: #222; color: white; border: 1px solid var(--border); padding: 5px; border-radius: 4px; font-size: 11px; margin-top: 8px; display: none; }
+.badge { font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold; text-transform: uppercase; }
+.badge-rosso { background: var(--accent); } .badge-giallo { background: var(--yellow); color: #000; } .badge-verde { background: var(--green); } .badge-blu { background: var(--blue); }
 </style>
 </head>
 <body>
@@ -34,34 +37,31 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   <div class="logo" onclick="location.reload()">MAGLIE<br><span>SENZA OSTACOLI</span></div>
   <div style="text-align: right;">
     <div style="font-size: 11px; color: #5a6070">UN'APP DI ANGELO GRECO</div>
-    <button class="admin-btn" id="loginAdmin">🔐 GESTISCI</button>
+    <button onclick="abilitaGestione()" style="font-size: 10px; opacity: 0.5; background:none; border:none; color:white;">🔐 ADMIN</button>
   </div>
 </div>
 <div id="main">
   <div id="map-wrap"><div id="map"></div></div>
   <div id="sidebar">
-    <div id="form-segnalazione">
-        <div class="section-title">Tipo di problema</div>
-        <div class="cat-grid">
-          <div class="cat-btn active" onclick="setCat(this, 'Architettonica')">♿ Architettonica</div>
-          <div class="cat-btn" onclick="setCat(this, 'Occupazione')">🚗 Occupazione</div>
-          <div class="cat-btn" onclick="setCat(this, 'Manutenzione')">⚠️ Manutenzione</div>
-          <div class="cat-btn" onclick="setCat(this, 'Sensoriale')">🚦 Sensoriale</div>
-        </div>
-        <textarea id="desc" placeholder="Descrivi il problema..."></textarea>
-        <input type="file" id="foto" accept="image/*" style="margin-bottom: 15px; color: #5a6070; font-size: 12px; display: block;">
-        <button class="btn-primary" id="btnInvia">INVIA SEGNALAZIONE</button>
+    <div class="section-title">Nuova Segnalazione</div>
+    <div class="cat-grid">
+      <div class="cat-btn active" onclick="setCat(this, 'Architettonica')">♿ Architettonica</div>
+      <div class="cat-btn" onclick="setCat(this, 'Occupazione')">🚗 Occupazione</div>
+      <div class="cat-btn" onclick="setCat(this, 'Manutenzione')">⚠️ Manutenzione</div>
+      <div class="cat-btn plus" onclick="setCat(this, 'Accessibile')">✅ Luogo OK</div>
     </div>
-
-    <div class="section-title">Segnalazioni Recenti</div>
-    <div id="lista-segnalazioni"></div>
+    <textarea id="desc" placeholder="Descrivi il problema o il luogo accessibile..."></textarea>
+    <input type="file" id="foto" accept="image/*" style="margin-bottom:15px; font-size:12px;">
+    <button class="btn-primary" id="btnInvia">INVIA</button>
+    <div class="section-title">Feed Recente</div>
+    <div id="lista"></div>
   </div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-  import { getStorage, ref as sRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+  import { getDatabase, ref, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
   const cfg = {
     apiKey: "AIzaSyCBBv6qJW1PdrxLC0s-yjIP96B9SyXORL4",
@@ -80,7 +80,6 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   let selectedCat = 'Architettonica';
   let marker;
   let isAdmin = false;
-  const PWD_ADMIN = "maglie2025admin"; // CAMBIA QUESTA PASSWORD
 
   const map = L.map('map', {zoomControl: false}).setView([40.1209, 18.2323], 15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -88,46 +87,69 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   map.on('locationfound', e => { marker = L.marker(e.latlng).addTo(map); });
   map.on('click', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
 
-  // Gestione Login Admin
-  document.getElementById('loginAdmin').onclick = () => {
-    const p = prompt("Inserisci la password amministratore:");
-    if(p === PWD_ADMIN) {
-      isAdmin = true;
-      alert("Modalità amministratore attivata.");
-      document.querySelectorAll('.delete-btn').forEach(b => b.style.display = 'block');
-    } else {
-      alert("Password errata.");
+  window.abilitaGestione = () => {
+    if(prompt("Password Admin:") === "maglie2025") {
+      isAdmin = true; alert("Modalità Gestione Attiva");
+      document.querySelectorAll('.status-select').forEach(s => s.style.display = 'block');
     }
   };
 
-  // Caricamento e visualizzazione segnalazioni
   onValue(ref(db, 'segnalazioni'), snap => {
-    const lista = document.getElementById('lista-segnalazioni');
-    lista.innerHTML = "";
     const data = snap.val();
-    
-    // Rimuove vecchi marker
+    const lista = document.getElementById('lista');
+    lista.innerHTML = "";
     map.eachLayer(l => { if(l instanceof L.Marker && l !== marker) map.removeLayer(l); });
 
     if(data) {
-      Object.keys(data).forEach(id => {
+      Object.keys(data).reverse().forEach(id => {
         const s = data[id];
-        let popupCont = `<b>${s.cat}</b><br>${s.desc}`;
-        if(s.fotoUrl) popupCont += `<br><img src="${s.fotoUrl}" style="width:100px; border-radius:5px">`;
+        const status = s.status || 'non-risolta';
+        const isAccessibile = s.cat === 'Accessibile';
         
-        L.marker([s.lat, s.lng]).addTo(map).bindPopup(popupCont);
+        // Colore del marker
+        let color = '#e03535'; // Rosso
+        if(isAccessibile) color = '#2d7de8'; // Blu
+        else if(status === 'in-carico') color = '#f1c40f'; // Giallo
+        else if(status === 'risolta') color = '#2ecc71'; // Verde
 
-        // Crea elemento lista
-        const div = document.createElement('div');
-        div.className = "report-item";
-        div.innerHTML = `
-          <strong>${s.cat}</strong><br>${s.desc}
-          <button class="delete-btn" onclick="elimina('${id}', '${s.fotoPath || ""}')" style="${isAdmin ? 'display:block' : ''}">🗑 ELIMINA</button>
+        const icon = L.divIcon({
+          className: 'custom-div-icon',
+          html: `<div style="background-color:${color}; width:12px; height:12px; border-radius:50%; border:2px solid white;"></div>`,
+          iconSize: [12, 12]
+        });
+
+        L.marker([s.lat, s.lng], {icon}).addTo(map).bindPopup(`<b>${s.cat}</b><br>${s.desc}`);
+
+        const item = document.createElement('div');
+        item.className = 'report-item';
+        item.style.borderLeftColor = color;
+        item.innerHTML = `
+          <div style="display:flex; justify-content:space-between">
+            <strong>${s.cat}</strong>
+            <span class="badge badge-${isAccessibile ? 'blu' : status === 'non-risolta' ? 'rosso' : status === 'in-carico' ? 'giallo' : 'verde'}">
+              ${isAccessibile ? 'ACCESSIBILE' : status.replace('-', ' ')}
+            </span>
+          </div>
+          <p style="font-size:12px; margin:5px 0">${s.desc}</p>
+          <select class="status-select" onchange="aggiornaStato('${id}', this.value)" style="${isAdmin ? 'display:block' : 'display:none'}">
+            <option value="non-risolta" ${status==='non-risolta'?'selected':''}>🔴 Non Risolta</option>
+            <option value="in-carico" ${status==='in-carico'?'selected':''}>🟡 In Carico</option>
+            <option value="risolta" ${status==='risolta'?'selected':''}>🟢 Risolta</option>
+            <option value="elimina">🗑 Elimina</option>
+          </select>
         `;
-        lista.appendChild(div);
+        lista.appendChild(item);
       });
     }
   });
+
+  window.aggiornaStato = async (id, val) => {
+    if(val === 'elimina') {
+      if(confirm("Eliminare definitivamente?")) await remove(ref(db, 'segnalazioni/' + id));
+    } else {
+      await update(ref(db, 'segnalazioni/' + id), { status: val });
+    }
+  };
 
   window.setCat = (el, cat) => {
     document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
@@ -135,43 +157,24 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     selectedCat = cat;
   };
 
-  window.elimina = async (id, path) => {
-    if(!confirm("Vuoi davvero eliminare questa segnalazione?")) return;
-    try {
-        await remove(ref(db, 'segnalazioni/' + id));
-        if(path) {
-            const fileRef = sRef(storage, path);
-            await deleteObject(fileRef);
-        }
-        alert("Eliminata.");
-    } catch (e) { alert("Errore nell'eliminazione."); }
-  };
-
   document.getElementById('btnInvia').onclick = async () => {
     const d = document.getElementById('desc').value;
     const file = document.getElementById('foto').files[0];
-    if(!marker || !d) return alert("Inserisci descrizione e posizione!");
+    if(!marker || !d) return alert("Inserisci posizione e testo!");
     
-    const btn = document.getElementById('btnInvia');
-    btn.innerText = "CARICAMENTO...";
-    btn.disabled = true;
+    document.getElementById('btnInvia').innerText = "INVIO...";
     let fotoUrl = "";
-    let fotoPath = "";
+    if(file) {
+      const sRefImg = sRef(storage, 'foto/'+Date.now());
+      await uploadBytes(sRefImg, file);
+      fotoUrl = await getDownloadURL(sRefImg);
+    }
 
-    try {
-      if(file) {
-        fotoPath = 'foto/' + Date.now() + "_" + file.name;
-        const storageRef = sRef(storage, fotoPath);
-        await uploadBytes(storageRef, file);
-        fotoUrl = await getDownloadURL(storageRef);
-      }
-
-      await push(ref(db, 'segnalazioni'), {
-        cat: selectedCat, desc: d, lat: marker.getLatLng().lat, lng: marker.getLatLng().lng, fotoUrl, fotoPath, ts: Date.now()
-      });
-      alert("Inviato!");
-      location.reload();
-    } catch (e) { alert("Errore."); btn.innerText = "INVIA SEGNALAZIONE"; btn.disabled = false; }
+    await push(ref(db, 'segnalazioni'), {
+      cat: selectedCat, desc: d, lat: marker.getLatLng().lat, lng: marker.getLatLng().lng, 
+      fotoUrl, status: 'non-risolta', ts: Date.now()
+    });
+    location.reload();
   };
 </script>
 </body>
