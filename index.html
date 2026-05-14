@@ -50,198 +50,198 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
 <body>
 
 <div id="topbar">
-  <div class="logo" onclick="location.reload()">MAGLIE<span> SENZA OSTACOLI</span></div>
-  <div style="text-align: right;">
-    <div style="font-size: 10px; color: #5a6070">UN'APP DI ANGELO GRECO</div>
-    <div style="font-size: 9px; color: var(--accent); font-weight: 700;">ASSOCIAZIONE C.F.P.</div>
-    <button onclick="abilitaGestione()" style="font-size: 10px; background:none; border:none; color:#5a6070; cursor:pointer;">🔐 ADMIN</button>
-  </div>
+  <div class="logo" onclick="location.reload()">MAGLIE<span> SENZA OSTACOLI</span></div>
+  <div style="text-align: right;">
+    <div style="font-size: 10px; color: #5a6070">UN'APP DI ANGELO GRECO</div>
+    <div style="font-size: 9px; color: var(--accent); font-weight: 700;">ASSOCIAZIONE C.F.P.</div>
+    <button onclick="abilitaGestione()" style="font-size: 10px; background:none; border:none; color:#5a6070; cursor:pointer;">🔐 ADMIN</button>
+  </div>
 </div>
 
 <div id="main">
-  <div id="map-wrap">
-    <div id="filter-container">
-        <div class="dropdown">
-            <button onclick="toggleDropdown()" class="dropbtn">🔍 FILTRI: <span id="currentFilterText">TUTTE</span></button>
-            <div id="myDropdown" class="dropdown-content">
-                <div onclick="applyFilter('TUTTE')">MOSTRA TUTTE</div>
-                <div onclick="applyFilter('Architettonica')">♿ BARRIERE</div>
-                <div onclick="applyFilter('Occupazione')">🚗 OCCUPAZIONE</div>
-                <div onclick="applyFilter('Manutenzione')">⚠️ MANUTENZIONE</div>
-                <div onclick="applyFilter('Accessibile')">✅ LUOGHI OK</div>
-            </div>
-        </div>
-        <button id="toggleMorigino" class="nav-btn" onclick="toggleLocation()">📍 VAI A MORIGINO</button>
-    </div>
-    <div id="map"></div>
-  </div>
+  <div id="map-wrap">
+    <div id="filter-container">
+        <div class="dropdown">
+            <button onclick="toggleDropdown()" class="dropbtn">🔍 FILTRI: <span id="currentFilterText">TUTTE</span></button>
+            <div id="myDropdown" class="dropdown-content">
+                <div onclick="applyFilter('TUTTE')">MOSTRA TUTTE</div>
+                <div onclick="applyFilter('Architettonica')">♿ BARRIERE</div>
+                <div onclick="applyFilter('Occupazione')">🚗 OCCUPAZIONE</div>
+                <div onclick="applyFilter('Manutenzione')">⚠️ MANUTENZIONE</div>
+                <div onclick="applyFilter('Accessibile')">✅ LUOGHI OK</div>
+            </div>
+        </div>
+        <button id="toggleMorigino" class="nav-btn" onclick="toggleLocation()">📍 VAI A MORIGINO</button>
+    </div>
+    <div id="map"></div>
+  </div>
 
-  <div id="sidebar">
-    <div class="section-title">Nuova Segnalazione</div>
-    <div class="cat-grid">
-      <div class="cat-btn active" onclick="setCat(this, 'Architettonica')">♿ Barriera</div>
-      <div class="cat-btn" onclick="setCat(this, 'Occupazione')">🚗 Occupazione</div>
-      <div class="cat-btn" onclick="setCat(this, 'Manutenzione')">⚠️ Manutenzione</div>
-      <div class="cat-btn" onclick="setCat(this, 'Accessibile')">✅ Luogo OK</div>
-    </div>
-    <textarea id="desc" rows="3" placeholder="Descrivi il punto..."></textarea>
-    <img id="preview">
-    <input type="file" id="foto" accept="image/*" style="margin-bottom:15px; font-size:12px; width:100%;">
-    <button class="btn-primary" id="btnInvia">INVIA SEGNALAZIONE</button>
-    <div id="lista" style="margin-top:20px;"></div>
-  </div>
+  <div id="sidebar">
+    <div class="section-title">Nuova Segnalazione</div>
+    <div class="cat-grid">
+      <div class="cat-btn active" onclick="setCat(this, 'Architettonica')">♿ Barriera</div>
+      <div class="cat-btn" onclick="setCat(this, 'Occupazione')">🚗 Occupazione</div>
+      <div class="cat-btn" onclick="setCat(this, 'Manutenzione')">⚠️ Manutenzione</div>
+      <div class="cat-btn" onclick="setCat(this, 'Accessibile')">✅ Luogo OK</div>
+    </div>
+    <textarea id="desc" rows="3" placeholder="Descrivi il punto..."></textarea>
+    <img id="preview">
+    <input type="file" id="foto" accept="image/*" style="margin-bottom:15px; font-size:12px; width:100%;">
+    <button class="btn-primary" id="btnInvia">INVIA SEGNALAZIONE</button>
+    <div id="lista" style="margin-top:20px;"></div>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-  import { getStorage, ref as sRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getStorage, ref as sRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
-  const cfg = {
-    apiKey: "AIzaSyCBBv6qJW1PdrxLC0s-yjIP96B9SyXORL4",
-    authDomain: "maglie-senza-ostacoli.firebaseapp.com",
-    projectId: "maglie-senza-ostacoli",
-    storageBucket: "maglie-senza-ostacoli.firebasestorage.app",
-    messagingSenderId: "727829599519",
-    appId: "1:727829599519:web:53b1f3d84d8a4425f98c2a",
-    databaseURL: "https://maglie-senza-ostacoli-default-rtdb.europe-west1.firebasedatabase.app"
-  };
+  const cfg = {
+    apiKey: "AIzaSyCBBv6qJW1PdrxLC0s-yjIP96B9SyXORL4",
+    authDomain: "maglie-senza-ostacoli.firebaseapp.com",
+    projectId: "maglie-senza-ostacoli",
+    storageBucket: "maglie-senza-ostacoli.firebasestorage.app",
+    messagingSenderId: "727829599519",
+    appId: "1:727829599519:web:53b1f3d84d8a4425f98c2a",
+    databaseURL: "https://maglie-senza-ostacoli-default-rtdb.europe-west1.firebasedatabase.app"
+  };
 
-  const app = initializeApp(cfg);
-  const db = getDatabase(app);
-  const storage = getStorage(app);
+  const app = initializeApp(cfg);
+  const db = getDatabase(app);
+  const storage = getStorage(app);
 
-  let selectedCat = 'Architettonica';
-  let activeFilter = 'TUTTE';
-  let isAtMorigino = false;
-  let marker;
-  let isAdmin = false;
-  let rawData = {};
-  let markersLayer = L.layerGroup();
+  let selectedCat = 'Architettonica';
+  let activeFilter = 'TUTTE';
+  let isAtMorigino = false;
+  let marker;
+  let isAdmin = false;
+  let rawData = {};
+  let markersLayer = L.layerGroup();
 
-  const bounds = [[40.0800, 18.2500], [40.1550, 18.3500]];
-  const map = L.map('map', { zoomControl: true, maxBounds: bounds, maxBoundsViscosity: 1.0, minZoom: 13 }).setView([40.1194, 18.2997], 15);
+  const bounds = [[40.0800, 18.2500], [40.1550, 18.3500]];
+  const map = L.map('map', { zoomControl: true, maxBounds: bounds, maxBoundsViscosity: 1.0, minZoom: 13 }).setView([40.1194, 18.2997], 15);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-  markersLayer.addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  markersLayer.addTo(map);
 
-  // BARRA DI RICERCA (Geocoder)
-  L.Control.geocoder({
-    defaultMarkGeocode: false,
-    placeholder: "Cerca via a Maglie...",
-    errorMessage: "Indirizzo non trovato."
-  })
-  .on('markgeocode', function(e) {
-    var bbox = e.geocode.bbox;
-    var poly = L.polygon([
-      bbox.getSouthEast(), bbox.getNorthEast(), bbox.getNorthWest(), bbox.getSouthWest()
-    ]);
-    map.fitBounds(poly.getBounds());
-  })
-  .addTo(map);
+  // BARRA DI RICERCA (Geocoder)
+  L.Control.geocoder({
+    defaultMarkGeocode: false,
+    placeholder: "Cerca via a Maglie...",
+    errorMessage: "Indirizzo non trovato."
+  })
+  .on('markgeocode', function(e) {
+    var bbox = e.geocode.bbox;
+    var poly = L.polygon([
+      bbox.getSouthEast(), bbox.getNorthEast(), bbox.getNorthWest(), bbox.getSouthWest()
+    ]);
+    map.fitBounds(poly.getBounds());
+  })
+  .addTo(map);
 
-  window.toggleDropdown = () => document.getElementById("myDropdown").classList.toggle("show");
-  window.applyFilter = (f) => { activeFilter = f; document.getElementById("currentFilterText").innerText = f.toUpperCase(); renderData(); };
+  window.toggleDropdown = () => document.getElementById("myDropdown").classList.toggle("show");
+  window.applyFilter = (f) => { activeFilter = f; document.getElementById("currentFilterText").innerText = f.toUpperCase(); renderData(); };
 
-  window.toggleLocation = () => {
-    const btn = document.getElementById('toggleMorigino');
-    if (!isAtMorigino) {
-      map.flyTo([40.1417, 18.3098], 17);
-      btn.innerText = "📍 RITORNA A MAGLIE"; isAtMorigino = true;
-    } else {
-      map.flyTo([40.1194, 18.2997], 15);
-      btn.innerText = "📍 VAI A MORIGINO"; isAtMorigino = false;
-    }
-  };
+  window.toggleLocation = () => {
+    const btn = document.getElementById('toggleMorigino');
+    if (!isAtMorigino) {
+      map.flyTo([40.1417, 18.3098], 17);
+      btn.innerText = "📍 RITORNA A MAGLIE"; isAtMorigino = true;
+    } else {
+      map.flyTo([40.1194, 18.2997], 15);
+      btn.innerText = "📍 VAI A MORIGINO"; isAtMorigino = false;
+    }
+  };
 
-  map.on('click', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
+  map.on('click', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
 
-  window.setCat = (el, cat) => {
-    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-    el.classList.add('active'); selectedCat = cat;
-  };
+  window.setCat = (el, cat) => {
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active'); selectedCat = cat;
+  };
 
-  window.abilitaGestione = () => {
-    if(prompt("Password Admin:") === "maglie2025") {
-      isAdmin = true; document.querySelectorAll('.status-select').forEach(s => s.style.display = 'block');
-    }
-  };
+  window.abilitaGestione = () => {
+    if(prompt("Password Admin:") === "maglie2025") {
+      isAdmin = true; document.querySelectorAll('.status-select').forEach(s => s.style.display = 'block');
+    }
+  };
 
-  onValue(ref(db, 'segnalazioni'), snap => {
-    rawData = snap.val() || {}; renderData();
-  });
+  onValue(ref(db, 'segnalazioni'), snap => {
+    rawData = snap.val() || {}; renderData();
+  });
 
-  function renderData() {
-    const lista = document.getElementById('lista');
-    lista.innerHTML = ""; markersLayer.clearLayers();
-    Object.keys(rawData).reverse().forEach(id => {
-      const s = rawData[id];
-      if (activeFilter !== 'TUTTE' && s.cat !== activeFilter) return;
-      const status = s.status || 'non-risolta';
-      let color = s.cat === 'Accessibile' ? '#2d7de8' : (status === 'risolta' ? '#2ecc71' : '#e03535');
-      
-      const icon = L.divIcon({ 
-        className: 'custom-div-icon', 
-        html: `<div class="custom-pin" style="background:${color};"></div>`, 
-        iconSize: [30, 42], iconAnchor: [15, 42] 
-      });
-      
-      L.marker([s.lat, s.lng], {icon}).addTo(markersLayer).bindPopup(`<b>${s.cat}</b><br>${s.desc}`);
+  function renderData() {
+    const lista = document.getElementById('lista');
+    lista.innerHTML = ""; markersLayer.clearLayers();
+    Object.keys(rawData).reverse().forEach(id => {
+      const s = rawData[id];
+      if (activeFilter !== 'TUTTE' && s.cat !== activeFilter) return;
+      const status = s.status || 'non-risolta';
+      let color = s.cat === 'Accessibile' ? '#2d7de8' : (status === 'risolta' ? '#2ecc71' : '#e03535');
+      
+      const icon = L.divIcon({ 
+        className: 'custom-div-icon', 
+        html: `<div class="custom-pin" style="background:${color};"></div>`, 
+        iconSize: [30, 42], iconAnchor: [15, 42] 
+      });
+      
+      L.marker([s.lat, s.lng], {icon}).addTo(markersLayer).bindPopup(`<b>${s.cat}</b><br>${s.desc}`);
 
-      const item = document.createElement('div');
-      item.className = 'report-item';
-      item.style.borderLeftColor = color;
-      item.innerHTML = `
-        <div style="font-size:12px; display:flex; justify-content:space-between">
-          <strong>${s.cat}</strong>
-          <span style="font-size:9px; font-weight:bold; color:${color}">${status.toUpperCase()}</span>
-        </div>
-        <p style="font-size:11px; color:#ccc; margin-top:5px;">${s.desc}</p>
-        <select class="status-select" onchange="aggiornaStato('${id}', this.value)" style="${isAdmin ? 'display:block' : 'none'}">
-          <option value="non-risolta" ${status==='non-risolta'?'selected':''}>🔴 Segnalata</option>
-          <option value="risolta" ${status==='risolta'?'selected':''}>🟢 Risolta</option>
-          <option value="elimina">🗑 Elimina</option>
-        </select>
-      `;
-      lista.appendChild(item);
-    });
-  }
+      const item = document.createElement('div');
+      item.className = 'report-item';
+      item.style.borderLeftColor = color;
+      item.innerHTML = `
+        <div style="font-size:12px; display:flex; justify-content:space-between">
+          <strong>${s.cat}</strong>
+          <span style="font-size:9px; font-weight:bold; color:${color}">${status.toUpperCase()}</span>
+        </div>
+        <p style="font-size:11px; color:#ccc; margin-top:5px;">${s.desc}</p>
+        <select class="status-select" onchange="aggiornaStato('${id}', this.value)" style="${isAdmin ? 'display:block' : 'none'}">
+          <option value="non-risolta" ${status==='non-risolta'?'selected':''}>🔴 Segnalata</option>
+          <option value="risolta" ${status==='risolta'?'selected':''}>🟢 Risolta</option>
+          <option value="elimina">🗑 Elimina</option>
+        </select>
+      `;
+      lista.appendChild(item);
+    });
+  }
 
-  window.aggiornaStato = async (id, val) => {
-    if(val === 'elimina') { if(confirm("Eliminare?")) await remove(ref(db, 'segnalazioni/' + id)); }
-    else await update(ref(db, 'segnalazioni/' + id), { status: val });
-  };
+  window.aggiornaStato = async (id, val) => {
+    if(val === 'elimina') { if(confirm("Eliminare?")) await remove(ref(db, 'segnalazioni/' + id)); }
+    else await update(ref(db, 'segnalazioni/' + id), { status: val });
+  };
 
-  document.getElementById('foto').onchange = e => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => { const img = document.getElementById('preview'); img.src = reader.result; img.style.display = 'block'; };
-      reader.readAsDataURL(file);
-    }
-  };
+  document.getElementById('foto').onchange = e => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => { const img = document.getElementById('preview'); img.src = reader.result; img.style.display = 'block'; };
+      reader.readAsDataURL(file);
+    }
+  };
 
-  document.getElementById('btnInvia').onclick = async () => {
-    const d = document.getElementById('desc').value.trim();
-    const file = document.getElementById('foto').files[0];
-    if(!marker || !d) return alert("Punta sulla mappa e scrivi!");
-    const latlng = marker.getLatLng();
-    const b = document.getElementById('btnInvia');
-    b.innerText = "INVIO..."; b.disabled = true;
-    try {
-      let fUrl = "", fPath = "";
-      if(file) {
-        fPath = 'foto/' + Date.now() + ".jpg";
-        await uploadBytes(sRef(storage, fPath), file);
-        fUrl = await getDownloadURL(sRef(storage, fPath));
-      }
-      await push(ref(db, 'segnalazioni'), { cat: selectedCat, desc: d, lat: latlng.lat, lng: latlng.lng, fotoUrl: fUrl, fotoPath: fPath, status: 'non-risolta', ts: Date.now() });
-      location.reload();
-    } catch (e) { b.innerText = "INVIA"; b.disabled = false; }
-  }
+  document.getElementById('btnInvia').onclick = async () => {
+    const d = document.getElementById('desc').value.trim();
+    const file = document.getElementById('foto').files[0];
+    if(!marker || !d) return alert("Punta sulla mappa e scrivi!");
+    const latlng = marker.getLatLng();
+    const b = document.getElementById('btnInvia');
+    b.innerText = "INVIO..."; b.disabled = true;
+    try {
+      let fUrl = "", fPath = "";
+      if(file) {
+        fPath = 'foto/' + Date.now() + ".jpg";
+        await uploadBytes(sRef(storage, fPath), file);
+        fUrl = await getDownloadURL(sRef(storage, fPath));
+      }
+      await push(ref(db, 'segnalazioni'), { cat: selectedCat, desc: d, lat: latlng.lat, lng: latlng.lng, fotoUrl: fUrl, fotoPath: fPath, status: 'non-risolta', ts: Date.now() });
+      location.reload();
+    } catch (e) { b.innerText = "INVIA"; b.disabled = false; }
+  }
 </script>
 </body>
 </html>
