@@ -16,7 +16,7 @@
         @media (min-width: 768px) { #main { flex-direction: row; } }
         #map-wrap { flex: 1; position: relative; display: flex; flex-direction: column; min-height: 45vh; }
         #map { flex: 1; width: 100%; background: #1a1a1a; }
-        #controls { background: var(--surface); padding: 8px; display: flex; gap: 5px; z-index: 1000; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+        #controls { background: var(--surface); padding: 8px; display: flex; gap: 5px; z-index: 1000; border-bottom: 1px solid var(--border); }
         .btn { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); padding: 8px 12px; border-radius: 20px; font-size: 10px; font-weight: 700; cursor: pointer; }
         .btn-blue { background: var(--blue); border: none; }
         .btn-green { background: var(--green); border: none; }
@@ -27,11 +27,14 @@
         .cat-btn.active { border-color: var(--accent); background: rgba(224,53,53,0.1); }
         textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 13px; resize: none; }
         .btn-send { width: 100%; background: var(--accent); color: #fff; border: none; padding: 15px; border-radius: 10px; font-weight: 800; cursor: pointer; }
-        .info-box { font-size: 11px; color: #aaa; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; margin-top: 15px; border: 1px solid var(--border); line-height: 1.4; }
-        .report-item { background: rgba(255,255,255,0.02); padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid var(--accent); }
+        .report-item { background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--accent); }
+        
+        /* PIN A GOCCIA CON ICONA */
+        .custom-pin { width: 32px; height: 32px; border-radius: 50% 50% 50% 0; position: absolute; transform: rotate(-45deg); left: 50%; top: 50%; margin: -32px 0 0 -16px; border: 2px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; }
+        .pin-icon { transform: rotate(45deg); font-size: 16px; display: block; }
+        
         .leaflet-control-geocoder { background: #1a1a1a !important; border: 1px solid var(--border) !important; border-radius: 8px !important; }
         .leaflet-control-geocoder-form input { color: white !important; background: transparent !important; }
-        .leaflet-control-geocoder-icon { filter: invert(1); }
     </style>
 </head>
 <body>
@@ -47,13 +50,6 @@
 <div id="main">
     <div id="map-wrap">
         <div id="controls">
-            <select id="fCat" class="btn" onchange="filtra(this.value)">
-                <option value="TUTTE">🔍 TUTTE</option>
-                <option value="Barriera">♿ BARRIERE</option>
-                <option value="Auto">🚗 AUTO</option>
-                <option value="Guasto">⚠️ GUASTO</option>
-                <option value="OK">✅ LUOGO OK</option>
-            </select>
             <button class="btn btn-blue" onclick="vaiMorigino()" id="btnMor">📍 MORIGINO</button>
             <button class="btn btn-green" onclick="trovaGPS()">🎯 GPS</button>
         </div>
@@ -68,17 +64,9 @@
             <div class="cat-btn" onclick="setCat(this, 'OK')">✅ Luogo OK</div>
         </div>
         <textarea id="desc" rows="3" placeholder="Descrivi il problema..."></textarea>
-        
-        <div style="font-size: 10px; color: var(--blue); font-weight: 700; margin-bottom: 5px;">📸 CARICA FOTO (OPZIONALE):</div>
-        <input type="file" id="fotoFile" accept="image/*" style="margin-bottom:15px; font-size:11px; color:#888;">
-        
+        <div style="font-size: 10px; color: var(--blue); font-weight: 700; margin-bottom: 5px;">📸 FOTO:</div>
+        <input type="file" id="fotoFile" accept="image/*" style="margin-bottom:15px; font-size:11px;">
         <button class="btn-send" id="btnInvia">INVIA SEGNALAZIONE</button>
-
-        <div class="info-box">
-            <b>ASSOCIAZIONE C.F.P.</b><br>
-            Mappatura gratuita per Maglie e Morigino.<br>
-            <i>⚠️ Privacy: non fotografare volti o targhe.</i>
-        </div>
         <div id="lista" style="margin-top:20px;"></div>
     </div>
 </div>
@@ -99,7 +87,7 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const imgbb_key = "b0a810118ed11f8c357b1f2befb4972a"; // La tua chiave API ImgBB
+    const imgbb_key = "b0a810118ed11f8c357b1f2befb4972a";
 
     const map = L.map('map').setView([40.1194, 18.2997], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -116,10 +104,9 @@
         marker = L.marker(e.geocode.center).addTo(map);
     }).addTo(map);
 
-    map.on('click', e => {
-        if(marker) map.removeLayer(marker);
-        marker = L.marker(e.latlng).addTo(map);
-    });
+    map.on('click', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
+    window.trovaGPS = () => map.locate({setView: true, maxZoom: 17});
+    map.on('locationfound', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
 
     window.vaiMorigino = () => {
         const btn = document.getElementById('btnMor');
@@ -127,15 +114,12 @@
         else { map.flyTo([40.1194, 18.2997], 15); btn.innerText = "📍 MORIGINO"; }
     };
 
-    window.trovaGPS = () => map.locate({setView: true, maxZoom: 17});
-    map.on('locationfound', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
-
     window.setCat = (el, cat) => {
         document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
         el.classList.add('active'); selectedCat = cat;
     };
 
-    window.abilitaAdmin = () => { if(prompt("Password Admin:") === "maglie2025") { isAdmin = true; renderData(); } };
+    window.abilitaAdmin = () => { if(prompt("Password:") === "maglie2025") { isAdmin = true; renderData(); } };
 
     onValue(ref(db, 'segnalazioni'), renderData);
 
@@ -147,12 +131,21 @@
             Object.keys(data).reverse().forEach(id => {
                 const s = data[id];
                 const color = s.cat === 'OK' ? '#2ecc71' : '#e03535';
-                L.circleMarker([s.lat, s.lng], { color: color, radius: 8, fillOpacity: 0.8 }).addTo(markersLayer).bindPopup(s.desc);
+                const iconChar = s.cat === 'Auto' ? '🚗' : (s.cat === 'Guasto' ? '⚠️' : (s.cat === 'OK' ? '✅' : '♿'));
+                
+                const icon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div class="custom-pin" style="background:${color}"><span class="pin-icon">${iconChar}</span></div>`,
+                    iconSize: [32, 42], iconAnchor: [16, 42]
+                });
+
+                L.marker([s.lat, s.lng], {icon}).addTo(markersLayer).bindPopup(s.desc);
+
                 const div = document.createElement('div');
                 div.className = 'report-item'; div.style.borderLeftColor = color;
-                div.innerHTML = `<b>${s.cat}</b><br><small>${s.desc}</small>
-                ${s.fotoUrl ? `<br><img src="${s.fotoUrl}" style="width:100%; margin-top:5px; border-radius:4px; cursor:pointer;" onclick="window.open('${s.fotoUrl}')">` : ''}
-                ${isAdmin ? `<br><button onclick="elimina('${id}')" style="color:red; font-size:10px; border:none; background:none; cursor:pointer;">🗑 ELIMINA</button>` : ''}`;
+                div.innerHTML = `<b>${iconChar} ${s.cat}</b><p style="font-size:11px; margin-top:4px;">${s.desc}</p>
+                ${s.fotoUrl ? `<img src="${s.fotoUrl}" style="width:100%; margin-top:8px; border-radius:4px;">` : ''}
+                ${isAdmin ? `<br><button onclick="elimina('${id}')" style="color:red; font-size:10px; border:none; background:none; cursor:pointer; margin-top:8px;">🗑 ELIMINA</button>` : ''}`;
                 lista.appendChild(div);
             });
         }, {onlyOnce: true});
@@ -163,28 +156,22 @@
     document.getElementById('btnInvia').onclick = async () => {
         const d = document.getElementById('desc').value.trim();
         const file = document.getElementById('fotoFile').files[0];
-        if(!marker || !d) return alert("Punta sulla mappa e scrivi una descrizione!");
-        
-        const btn = document.getElementById('btnInvia');
-        btn.disabled = true; btn.innerText = "CARICAMENTO...";
-        
+        if(!marker || !d) return alert("Punta sulla mappa e scrivi!");
+        const btn = document.getElementById('btnInvia'); btn.disabled = true; btn.innerText = "CARICAMENTO...";
         let url = "";
         if(file) {
             const form = new FormData(); form.append("image", file);
             try {
                 const res = await fetch(`https://api.imgbb.com/1/upload?key=${imgbb_key}`, { method: "POST", body: form });
-                const json = await res.json();
-                url = json.data.url;
+                const json = await res.json(); url = json.data.url;
             } catch(e) { console.error("Errore foto"); }
         }
-
         try {
             await push(ref(db, 'segnalazioni'), {
-                cat: selectedCat, desc: d, lat: marker.getLatLng().lat, lng: marker.getLatLng().lng,
-                fotoUrl: url, ts: Date.now()
+                cat: selectedCat, desc: d, lat: marker.getLatLng().lat, lng: marker.getLatLng().lng, fotoUrl: url, ts: Date.now()
             });
             location.reload();
-        } catch(e) { alert("Errore invio!"); btn.disabled = false; btn.innerText = "INVIA"; }
+        } catch(e) { alert("Errore!"); btn.disabled = false; btn.innerText = "INVIA"; }
     };
 </script>
 </body>
