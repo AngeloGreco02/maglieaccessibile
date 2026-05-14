@@ -73,7 +73,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     <input type="file" id="foto" accept="image/*" style="margin-bottom:15px; font-size:12px; width:100%; color: #5a6070;">
     
     <button class="btn-primary" id="btnInvia">INVIA SEGNALAZIONE</button>
-    <div class="privacy-note">⚠️ Non inquadrare volti di persone o targhe di veicoli. Le auto scadono dopo 24h.</div>
+    <div class="privacy-note">⚠️ Non inquadrare volti di persone o targhe di veicoli.</div>
 
     <div class="section-title" style="margin-top:20px;">
       Segnalazioni Recenti
@@ -109,15 +109,15 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   let rawData = {};
   let markersLayer = L.layerGroup();
 
-  // CONFINI ALLARGATI PER INCLUDERE MORIGINO (PIÙ A SUD)
-  const bounds = [[40.0850, 18.2700], [40.1450, 18.3300]];
-  const map = L.map('map', { zoomControl: false, maxBounds: bounds, maxBoundsViscosity: 1.0, minZoom: 14 }).setView([40.1194, 18.2997], 15);
+  // CONFINI AGGIORNATI PER COPRIRE LE TUE COORDINATE
+  const bounds = [[40.0800, 18.2500], [40.1550, 18.3500]];
+  const map = L.map('map', { zoomControl: false, maxBounds: bounds, maxBoundsViscosity: 1.0, minZoom: 13 }).setView([40.1194, 18.2997], 15);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
   markersLayer.addTo(map);
 
-  // COORDINATE CENTRALI MORIGINO (INCROCIO VIA ABATE / VIA MARCONI)
-  window.vaiAMorigino = () => { map.flyTo([40.1009, 18.3115], 17); };
+  // COORDINATE MORIGINO FORNITE DA TE
+  window.vaiAMorigino = () => { map.flyTo([40.1417, 18.3098], 17); };
 
   map.on('click', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
 
@@ -138,7 +138,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     if(prompt("Password Admin:") === "maglie2025") {
       isAdmin = true;
       document.querySelectorAll('.status-select, .export-btn').forEach(s => s.style.display = 'block');
-      alert("Gestione C.F.P. Attiva");
+      alert("Gestione Associazione C.F.P. Attiva");
     }
   };
 
@@ -169,11 +169,9 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
         <div style="display:flex; justify-content:space-between; font-size:12px;"><strong>${s.cat}</strong><span class="badge" style="background:${color}; color:#fff">${status.toUpperCase()}</span></div>
         <p style="font-size:11px; margin-top:4px; color:#ccc;">${s.desc}</p>
         ${s.fotoUrl ? `<img src="${s.fotoUrl}" style="width:100%; height:100px; object-fit:cover; border-radius:5px; margin-top:8px;">` : ''}
-        ${s.verificato ? '<div style="color:#2ecc71; font-size:9px; font-weight:900; margin-top:5px;">✓ VERIFICATO</div>' : ''}
         <select class="status-select" onchange="aggiornaStato('${id}', this.value, '${s.fotoPath || ''}')" style="${isAdmin ? 'display:block' : 'none'}">
           <option value="non-risolta">🔴 Segnalata</option>
           <option value="risolta">🟢 Risolta</option>
-          <option value="verificato">✅ Segna VERIFICATO</option>
           <option value="elimina">🗑 Elimina</option>
         </select>
       `;
@@ -183,12 +181,10 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
 
   window.aggiornaStato = async (id, val, fPath) => {
     if(val === 'elimina') { 
-      if(confirm("Eliminare?")) {
+      if(confirm("Eliminare definitivamente?")) {
         await remove(ref(db, 'segnalazioni/' + id));
         if(fPath) try { await deleteObject(sRef(storage, fPath)); } catch(e) {}
       }
-    } else if(val === 'verificato') {
-       await update(ref(db, 'segnalazioni/' + id), { verificato: true });
     } else await update(ref(db, 'segnalazioni/' + id), { status: val });
   };
 
@@ -217,7 +213,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
         await uploadBytes(sRef(storage, fPath), file);
         fUrl = await getDownloadURL(sRef(storage, fPath));
       }
-      await push(ref(db, 'segnalazioni'), { cat: selectedCat, desc: d, lat: latlng.lat, lng: latlng.lng, fotoUrl: fUrl, fotoPath: fPath, status: 'non-risolta', ts: Date.now(), verificato: false });
+      await push(ref(db, 'segnalazioni'), { cat: selectedCat, desc: d, lat: latlng.lat, lng: latlng.lng, fotoUrl: fUrl, fotoPath: fPath, status: 'non-risolta', ts: Date.now() });
       location.reload();
     } catch (e) { alert("Errore invio."); b.innerText = "INVIA SEGNALAZIONE"; b.disabled = false; }
   }
