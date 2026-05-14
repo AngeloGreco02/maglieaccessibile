@@ -26,6 +26,7 @@
   --font-body: 'Barlow', sans-serif;
 }
 
+/* Reset base */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { 
   background: var(--bg); 
@@ -37,6 +38,7 @@ body {
   overflow: hidden; 
 }
 
+/* Topbar */
 #topbar {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -49,6 +51,7 @@ body {
 .logo { font-family: var(--font-display); font-weight: 800; line-height: 1; font-size: 18px; }
 .logo span { color: var(--accent); }
 
+/* Layout */
 #main { display: flex; flex: 1; overflow: hidden; flex-direction: column; }
 @media (min-width: 768px) { #main { flex-direction: row; } }
 
@@ -67,6 +70,7 @@ body {
   #sidebar { width: 400px; flex: none; border-top: none; border-left: 1px solid var(--border); }
 }
 
+/* UI */
 .section-title { font-family: var(--font-display); font-size: 18px; text-transform: uppercase; margin-bottom: 15px; color: var(--accent); }
 .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
 .cat-btn { 
@@ -103,13 +107,13 @@ textarea {
     <div class="section-title">Nuova Segnalazione</div>
     
     <div class="cat-grid">
-      <div class="cat-btn active" onclick="setCat(this, 'arch')">♿ Architettonica</div>
-      <div class="cat-btn" onclick="setCat(this, 'illegal')">🚗 Occupazione</div>
-      <div class="cat-btn" onclick="setCat(this, 'maint')">⚠️ Manutenzione</div>
-      <div class="cat-btn" onclick="setCat(this, 'sensory')">🚦 Sensoriale</div>
+      <div class="cat-btn active" onclick="setCat(this, 'Architettonica')">♿ Architettonica</div>
+      <div class="cat-btn" onclick="setCat(this, 'Occupazione')">🚗 Occupazione</div>
+      <div class="cat-btn" onclick="setCat(this, 'Manutenzione')">⚠️ Manutenzione</div>
+      <div class="cat-btn" onclick="setCat(this, 'Sensoriale')">🚦 Sensoriale</div>
     </div>
 
-    <textarea id="desc" placeholder="Descrivi il problema..."></textarea>
+    <textarea id="desc" placeholder="Descrivi il problema (es. gradino troppo alto, buca nel marciapiede...)"></textarea>
     
     <div style="margin-bottom: 20px;">
       <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 5px;">FOTO / VIDEO</label>
@@ -127,7 +131,7 @@ textarea {
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-  // CONFIGURAZIONE NUOVO DATABASE "MAGLIE-SENZA-OSTACOLI"
+  // CHIAVI DEL TUO NUOVO DATABASE "MAGLIE-SENZA-OSTACOLI"
   const cfg = {
     apiKey: "AIzaSyCBBv6qJW1PdrxLC0s-yjIP96B9SyXORL4",
     authDomain: "maglie-senza-ostacoli.firebaseapp.com",
@@ -141,17 +145,25 @@ textarea {
   const app = initializeApp(cfg);
   const db = getDatabase(app);
 
-  let selectedCat = 'arch';
+  let selectedCat = 'Architettonica';
   let marker;
-  const map = L.map('map', {zoomControl: false}).setView([40.1186, 18.2985], 15);
+  
+  // Mappa centrata su Maglie
+  const map = L.map('map', {zoomControl: false}).setView([40.1209, 18.2323], 15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-  // Carica i marker esistenti dal database
+  // Sincronizzazione in tempo reale dei marker
   onValue(ref(db, 'segnalazioni'), (snapshot) => {
     const data = snapshot.val();
     if (data) {
+      // Puliamo i marker esistenti per non duplicarli (tranne quello che stiamo mettendo ora)
+      map.eachLayer((layer) => {
+        if (layer instanceof L.Marker && layer !== marker) map.removeLayer(layer);
+      });
+      
       Object.values(data).forEach(s => {
-        L.marker([s.lat, s.lng]).addTo(map).bindPopup(s.desc);
+        L.marker([s.lat, s.lng]).addTo(map)
+          .bindPopup(`<b>${s.cat}</b><br>${s.desc}`);
       });
     }
   });
@@ -169,17 +181,23 @@ textarea {
 
   window.invia = async () => {
     const d = document.getElementById('desc').value;
-    if (!marker || !d) return alert("Segna la posizione e scrivi una descrizione!");
+    if (!marker || !d) return alert("Per favore, segna la posizione sulla mappa e scrivi una descrizione!");
     
-    await push(ref(db, 'segnalazioni'), {
-      cat: selectedCat,
-      desc: d,
-      lat: marker.getLatLng().lat,
-      lng: marker.getLatLng().lng,
-      ts: Date.now()
-    });
-    alert("Segnalazione inviata al nuovo database!");
-    location.reload();
+    try {
+      await push(ref(db, 'segnalazioni'), {
+        cat: selectedCat,
+        desc: d,
+        lat: marker.getLatLng().lat,
+        lng: marker.getLatLng().lng,
+        timestamp: Date.now()
+      });
+      alert("Segnalazione inviata con successo!");
+      document.getElementById('desc').value = "";
+      if (marker) map.removeLayer(marker);
+      marker = null;
+    } catch (e) {
+      alert("Errore nell'invio: controlla di aver abilitato la 'Modalità Test' su Firebase!");
+    }
   };
 </script>
 </body>
