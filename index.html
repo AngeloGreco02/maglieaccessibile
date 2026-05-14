@@ -16,12 +16,11 @@
         @media (min-width: 768px) { #main { flex-direction: row; } }
         #map-wrap { flex: 1; position: relative; display: flex; flex-direction: column; min-height: 45vh; }
         #map { flex: 1; width: 100%; background: #1a1a1a; }
-        #controls { background: var(--surface); padding: 8px; display: flex; gap: 5px; z-index: 1000; border-bottom: 1px solid var(--border); }
-        .btn { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); padding: 8px 12px; border-radius: 20px; font-size: 10px; font-weight: 700; cursor: pointer; }
+        #controls { background: var(--surface); padding: 8px; display: flex; gap: 5px; z-index: 1000; border-bottom: 1px solid var(--border); overflow-x: auto; }
+        .btn { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); padding: 8px 12px; border-radius: 20px; font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap; }
         .btn-blue { background: var(--blue); border: none; }
-        .btn-green { background: var(--green); border: none; }
         #sidebar { background: var(--surface); width: 100%; padding: 15px; overflow-y: auto; z-index: 1002; border-top: 1px solid var(--border); }
-        @media (min-width: 768px) { #sidebar { width: 350px; border-left: 1px solid var(--border); border-top: none; } }
+        @media (min-width: 768px) { #sidebar { width: 350px; border-left: 1px solid var(--border); } }
         .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
         .cat-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 8px; font-size: 11px; cursor: pointer; text-align: center; }
         .cat-btn.active { border-color: var(--accent); background: rgba(224,53,53,0.1); }
@@ -30,6 +29,8 @@
         .report-item { background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--accent); }
         .custom-pin { width: 36px; height: 36px; border-radius: 50% 50% 50% 0; position: absolute; transform: rotate(-45deg); left: 50%; top: 50%; margin: -36px 0 0 -18px; border: 2px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
         .pin-icon { transform: rotate(45deg); font-size: 18px; display: block; }
+        .leaflet-control-geocoder { background: #1a1a1a !important; border: 1px solid var(--border) !important; border-radius: 8px; }
+        .leaflet-control-geocoder-form input { color: white !important; }
     </style>
 </head>
 <body>
@@ -53,7 +54,7 @@
                 <option value="OK">✅ OK</option>
             </select>
             <button class="btn btn-blue" onclick="vaiMorigino()" id="btnMor">📍 VAI A MORIGINO</button>
-            <button class="btn btn-green" onclick="trovaGPS()">🎯 GPS</button>
+            <button class="btn btn" style="background:var(--green); border:none;" onclick="trovaGPS()">🎯 GPS</button>
         </div>
         <div id="map"></div>
     </div>
@@ -90,14 +91,8 @@
     const db = getDatabase(app);
     const imgbb_key = "b0a810118ed11f8c357b1f2befb4972a";
 
-    // LIMITI MAPPA (Maglie e Morigino ben larghi)
-    const bounds = L.latLngBounds([40.1000, 18.2700], [40.1600, 18.3400]);
-
-    const map = L.map('map', {
-        maxBounds: bounds,
-        maxBoundsViscosity: 1.0,
-        minZoom: 13
-    }).setView([40.1194, 18.2997], 15);
+    const bounds = L.latLngBounds([40.1000, 18.2700], [40.1700, 18.3500]);
+    const map = L.map('map', { maxBounds: bounds, maxBoundsViscosity: 1.0, minZoom: 13 }).setView([40.1194, 18.2997], 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
@@ -108,18 +103,18 @@
     let markersLayer = L.layerGroup().addTo(map);
     let rawData = {};
 
-    // FUNZIONE VAI A MORIGINO SISTEMATA
     window.vaiMorigino = () => {
-        const moriginoCoords = [40.1417, 18.3098];
-        const maglieCoords = [40.1194, 18.2997];
+        const morigino = [40.1417, 18.3098];
+        const maglie = [40.1194, 18.2997];
         const btn = document.getElementById('btnMor');
-
         if(btn.innerText.includes("MORIGINO")) {
-            map.flyTo(moriginoCoords, 17);
+            map.flyTo(morigino, 17);
             btn.innerText = "📍 TORNA A MAGLIE";
+            btn.style.backgroundColor = "var(--accent)";
         } else {
-            map.flyTo(maglieCoords, 15);
+            map.flyTo(maglie, 15);
             btn.innerText = "📍 VAI A MORIGINO";
+            btn.style.backgroundColor = "var(--blue)";
         }
     };
 
@@ -128,7 +123,7 @@
             map.setView(e.geocode.center, 18);
             if(marker) map.removeLayer(marker);
             marker = L.marker(e.geocode.center).addTo(map);
-        } else { alert("Ricerca fuori zona consentita."); }
+        } else { alert("Ricerca fuori zona."); }
     }).addTo(map);
 
     map.on('click', e => { 
@@ -144,7 +139,7 @@
         el.classList.add('active'); selectedCat = cat;
     };
     window.filtraMappa = (val) => { activeFilter = val; renderData(); };
-    window.abilitaAdmin = () => { if(prompt("Password:") === "maglie2025") { isAdmin = true; renderData(); } };
+    window.abilitaAdmin = () => { if(prompt("Password Admin:") === "maglie2025") { isAdmin = true; renderData(); } };
 
     onValue(ref(db, 'segnalazioni'), snap => {
         rawData = snap.val() || {};
@@ -154,25 +149,20 @@
     function renderData() {
         const lista = document.getElementById('lista');
         lista.innerHTML = ""; markersLayer.clearLayers();
-        
         Object.keys(rawData).reverse().forEach(id => {
             const s = rawData[id];
-            
-            // TRADUZIONE VECCHIE CATEGORIE PER ICONE
-            let catCheck = s.cat;
-            if(catCheck === 'Architettonica') catCheck = 'Barriera';
-            if(catCheck === 'Occupazione') catCheck = 'Auto';
-            if(catCheck === 'Manutenzione') catCheck = 'Guasto';
-            if(catCheck === 'Accessibile') catCheck = 'OK';
+            let c = s.cat;
+            if(c === 'Architettonica') c = 'Barriera';
+            if(c === 'Occupazione') c = 'Auto';
+            if(c === 'Manutenzione') c = 'Guasto';
+            if(c === 'Accessibile') c = 'OK';
 
-            if (activeFilter !== "TUTTE" && catCheck !== activeFilter) return;
+            if (activeFilter !== "TUTTE" && c !== activeFilter) return;
 
-            let color = "var(--accent)";
-            let iconChar = "♿";
-
-            if (catCheck === 'Auto') { color = "var(--orange)"; iconChar = "🚗"; }
-            else if (catCheck === 'Guasto') { color = "#7f8c8d"; iconChar = "⚠️"; }
-            else if (catCheck === 'OK') { color = "var(--green)"; iconChar = "✅"; }
+            let color = "var(--accent)"; let iconChar = "♿";
+            if (c === 'Auto') { color = "var(--orange)"; iconChar = "🚗"; }
+            else if (c === 'Guasto') { color = "#7f8c8d"; iconChar = "⚠️"; }
+            else if (c === 'OK') { color = "var(--green)"; iconChar = "✅"; }
 
             const customIcon = L.divIcon({
                 className: 'custom-div-icon',
@@ -180,11 +170,11 @@
                 iconSize: [36, 46], iconAnchor: [18, 46]
             });
 
-            L.marker([s.lat, s.lng], {icon: customIcon}).addTo(markersLayer).bindPopup(`<b>${catCheck}</b><br>${s.desc}`);
+            L.marker([s.lat, s.lng], {icon: customIcon}).addTo(markersLayer).bindPopup(`<b>${c}</b><br>${s.desc}`);
 
             const div = document.createElement('div');
             div.className = 'report-item'; div.style.borderLeftColor = color;
-            div.innerHTML = `<b>${iconChar} ${catCheck}</b><p style="font-size:11px; margin-top:8px;">${s.desc}</p>
+            div.innerHTML = `<b>${iconChar} ${c}</b><p style="font-size:11px; margin-top:8px;">${s.desc}</p>
             ${s.fotoUrl ? `<img src="${s.fotoUrl}" style="width:100%; margin-top:8px; border-radius:4px;">` : ''}
             ${isAdmin ? `<br><button onclick="window.elimina('${id}')" style="color:red; border:none; background:none; cursor:pointer; margin-top:8px;">🗑 ELIMINA</button>` : ''}`;
             lista.appendChild(div);
