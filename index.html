@@ -30,7 +30,6 @@
         .report-item { background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--accent); }
         .custom-pin { width: 36px; height: 36px; border-radius: 50% 50% 50% 0; position: absolute; transform: rotate(-45deg); left: 50%; top: 50%; margin: -36px 0 0 -18px; border: 2px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
         .pin-icon { transform: rotate(45deg); font-size: 18px; display: block; }
-        .leaflet-control-geocoder { background: #1a1a1a !important; border: 1px solid var(--border) !important; }
     </style>
 </head>
 <body>
@@ -53,7 +52,7 @@
                 <option value="Guasto">⚠️ GUASTI</option>
                 <option value="OK">✅ OK</option>
             </select>
-            <button class="btn btn-blue" onclick="vaiMorigino()" id="btnMor">📍 MORIGINO</button>
+            <button class="btn btn-blue" onclick="vaiMorigino()" id="btnMor">📍 VAI A MORIGINO</button>
             <button class="btn btn-green" onclick="trovaGPS()">🎯 GPS</button>
         </div>
         <div id="map"></div>
@@ -91,13 +90,13 @@
     const db = getDatabase(app);
     const imgbb_key = "b0a810118ed11f8c357b1f2befb4972a";
 
-    // LIMITI MAPPA (Maglie e Morigino)
-    const bounds = L.latLngBounds([40.10, 18.27], [40.16, 18.34]);
+    // LIMITI MAPPA (Maglie e Morigino ben larghi)
+    const bounds = L.latLngBounds([40.1000, 18.2700], [40.1600, 18.3400]);
 
     const map = L.map('map', {
         maxBounds: bounds,
         maxBoundsViscosity: 1.0,
-        minZoom: 14
+        minZoom: 13
     }).setView([40.1194, 18.2997], 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -109,12 +108,27 @@
     let markersLayer = L.layerGroup().addTo(map);
     let rawData = {};
 
+    // FUNZIONE VAI A MORIGINO SISTEMATA
+    window.vaiMorigino = () => {
+        const moriginoCoords = [40.1417, 18.3098];
+        const maglieCoords = [40.1194, 18.2997];
+        const btn = document.getElementById('btnMor');
+
+        if(btn.innerText.includes("MORIGINO")) {
+            map.flyTo(moriginoCoords, 17);
+            btn.innerText = "📍 TORNA A MAGLIE";
+        } else {
+            map.flyTo(maglieCoords, 15);
+            btn.innerText = "📍 VAI A MORIGINO";
+        }
+    };
+
     L.Control.geocoder({ defaultMarkGeocode: false, placeholder: "Cerca via..." }).on('markgeocode', e => {
         if(bounds.contains(e.geocode.center)) {
             map.setView(e.geocode.center, 18);
             if(marker) map.removeLayer(marker);
             marker = L.marker(e.geocode.center).addTo(map);
-        } else { alert("Ricerca fuori zona."); }
+        } else { alert("Ricerca fuori zona consentita."); }
     }).addTo(map);
 
     map.on('click', e => { 
@@ -125,7 +139,6 @@
     });
     
     window.trovaGPS = () => map.locate({setView: true, maxZoom: 17});
-    window.vaiMorigino = () => map.flyTo([40.1417, 18.3098], 17);
     window.setCat = (el, cat) => {
         document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
         el.classList.add('active'); selectedCat = cat;
@@ -145,7 +158,7 @@
         Object.keys(rawData).reverse().forEach(id => {
             const s = rawData[id];
             
-            // TRADUZIONE VECCHIE CATEGORIE
+            // TRADUZIONE VECCHIE CATEGORIE PER ICONE
             let catCheck = s.cat;
             if(catCheck === 'Architettonica') catCheck = 'Barriera';
             if(catCheck === 'Occupazione') catCheck = 'Auto';
