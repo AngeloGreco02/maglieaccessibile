@@ -34,8 +34,9 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .cat-btn.active { border-color: var(--accent); background: rgba(224,53,53,0.1); }
 textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-family: inherit; resize: none; }
 .btn-primary { width: 100%; background: var(--accent); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 800; cursor: pointer; }
-.report-item { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--accent); }
+.report-item { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--accent); position: relative; }
 .status-select { background: #222; color: white; border: 1px solid var(--border); padding: 6px; border-radius: 4px; font-size: 11px; margin-top: 8px; width: 100%; display: none; }
+.export-btn { background: var(--blue); color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 10px; cursor: pointer; display: none; margin-bottom: 15px; }
 #preview { width: 100%; max-height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; display: none; }
 
 /* Stile Pin Goccia */
@@ -82,12 +83,14 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
       <div class="cat-btn active" onclick="setCat(this, 'Architettonica')">♿ Barriera</div>
       <div class="cat-btn" onclick="setCat(this, 'Occupazione')">🚗 Occupazione</div>
       <div class="cat-btn" onclick="setCat(this, 'Manutenzione')">⚠️ Manutenzione</div>
-      <div class="cat-btn" onclick="setCat(this, 'Accessibile')">✅ Luogo OK</div>
+      <div class="cat-btn plus" onclick="setCat(this, 'Accessibile')">✅ Luogo OK</div>
     </div>
     <textarea id="desc" rows="3" placeholder="Descrivi il punto..."></textarea>
     <img id="preview">
     <input type="file" id="foto" accept="image/*" style="margin-bottom:15px; font-size:12px; width:100%;">
     <button class="btn-primary" id="btnInvia">INVIA SEGNALAZIONE</button>
+    
+    <button class="export-btn" id="exportBtn" onclick="esportaDati()">📊 REPORT CSV</button>
     <div id="lista" style="margin-top:20px;"></div>
   </div>
 </div>
@@ -128,23 +131,32 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
   markersLayer.addTo(map);
 
-  // BARRA DI RICERCA (Geocoder)
+  // RICERCA LIMITATA A MAGLIE
   L.Control.geocoder({
     defaultMarkGeocode: false,
     placeholder: "Cerca via a Maglie...",
-    errorMessage: "Indirizzo non trovato."
+    geocoder: L.Control.geocoder.nominatim({
+      geocodingQueryParams: {
+        viewbox: '18.2500,40.0800,18.3500,40.1550',
+        bounded: 1
+      }
+    })
   })
   .on('markgeocode', function(e) {
-    var bbox = e.geocode.bbox;
-    var poly = L.polygon([
-      bbox.getSouthEast(), bbox.getNorthEast(), bbox.getNorthWest(), bbox.getSouthWest()
-    ]);
-    map.fitBounds(poly.getBounds());
+    const latlng = e.geocode.center;
+    map.setView(latlng, 17);
+    if(marker) map.removeLayer(marker);
+    marker = L.marker(latlng).addTo(map);
   })
   .addTo(map);
 
   window.toggleDropdown = () => document.getElementById("myDropdown").classList.toggle("show");
-  window.applyFilter = (f) => { activeFilter = f; document.getElementById("currentFilterText").innerText = f.toUpperCase(); renderData(); };
+  window.applyFilter = (f) => { 
+    activeFilter = f; 
+    document.getElementById("currentFilterText").innerText = f.toUpperCase(); 
+    document.getElementById("myDropdown").classList.remove("show"); 
+    renderData(); 
+  };
 
   window.toggleLocation = () => {
     const btn = document.getElementById('toggleMorigino');
@@ -166,7 +178,9 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
 
   window.abilitaGestione = () => {
     if(prompt("Password Admin:") === "maglie2025") {
-      isAdmin = true; document.querySelectorAll('.status-select').forEach(s => s.style.display = 'block');
+      isAdmin = true; 
+      document.querySelectorAll('.status-select, .export-btn').forEach(s => s.style.display = 'block');
+      alert("Gestione C.F.P. Attiva");
     }
   };
 
@@ -180,6 +194,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     Object.keys(rawData).reverse().forEach(id => {
       const s = rawData[id];
       if (activeFilter !== 'TUTTE' && s.cat !== activeFilter) return;
+      
       const status = s.status || 'non-risolta';
       let color = s.cat === 'Accessibile' ? '#2d7de8' : (status === 'risolta' ? '#2ecc71' : '#e03535');
       
@@ -189,7 +204,9 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
         iconSize: [30, 42], iconAnchor: [15, 42] 
       });
       
-      L.marker([s.lat, s.lng], {icon}).addTo(markersLayer).bindPopup(`<b>${s.cat}</b><br>${s.desc}`);
+      let popupCont = `<b>${s.cat}</b><br>${s.desc}`;
+      if(s.fotoUrl) popupCont += `<br><img src="${s.fotoUrl}" style="width:120px; border-radius:5px; margin-top:5px">`;
+      L.marker([s.lat, s.lng], {icon}).addTo(markersLayer).bindPopup(popupCont);
 
       const item = document.createElement('div');
       item.className = 'report-item';
@@ -200,9 +217,12 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
           <span style="font-size:9px; font-weight:bold; color:${color}">${status.toUpperCase()}</span>
         </div>
         <p style="font-size:11px; color:#ccc; margin-top:5px;">${s.desc}</p>
-        <select class="status-select" onchange="aggiornaStato('${id}', this.value)" style="${isAdmin ? 'display:block' : 'none'}">
+        ${s.fotoUrl ? `<img src="${s.fotoUrl}" style="width:100%; height:100px; object-fit:cover; border-radius:5px; margin-top:8px;">` : ''}
+        ${s.verificato ? '<div style="color:#2ecc71; font-size:9px; font-weight:900; margin-top:5px;">✓ VERIFICATO</div>' : ''}
+        <select class="status-select" onchange="aggiornaStato('${id}', this.value, '${s.fotoPath || ''}')" style="${isAdmin ? 'display:block' : 'none'}">
           <option value="non-risolta" ${status==='non-risolta'?'selected':''}>🔴 Segnalata</option>
           <option value="risolta" ${status==='risolta'?'selected':''}>🟢 Risolta</option>
+          <option value="verificato">✅ Segna VERIFICATO</option>
           <option value="elimina">🗑 Elimina</option>
         </select>
       `;
@@ -210,9 +230,23 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     });
   }
 
-  window.aggiornaStato = async (id, val) => {
-    if(val === 'elimina') { if(confirm("Eliminare?")) await remove(ref(db, 'segnalazioni/' + id)); }
-    else await update(ref(db, 'segnalazioni/' + id), { status: val });
+  window.aggiornaStato = async (id, val, fPath) => {
+    if(val === 'elimina') { 
+      if(confirm("Eliminare definitivamente?")) {
+        await remove(ref(db, 'segnalazioni/' + id));
+        if(fPath) try { await deleteObject(sRef(storage, fPath)); } catch(e) {}
+      }
+    } else if(val === 'verificato') {
+       await update(ref(db, 'segnalazioni/' + id), { verificato: true });
+    } else await update(ref(db, 'segnalazioni/' + id), { status: val });
+  };
+
+  window.esportaDati = () => {
+    let csv = "Categoria,Descrizione,Stato,Data\n";
+    Object.values(rawData).forEach(s => { csv += `"${s.cat}","${s.desc}","${s.status}","${new Date(s.ts).toLocaleDateString()}"\n`; });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'report_maglie.csv'; a.click();
   };
 
   document.getElementById('foto').onchange = e => {
@@ -228,7 +262,6 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     const d = document.getElementById('desc').value.trim();
     const file = document.getElementById('foto').files[0];
     if(!marker || !d) return alert("Punta sulla mappa e scrivi!");
-    const latlng = marker.getLatLng();
     const b = document.getElementById('btnInvia');
     b.innerText = "INVIO..."; b.disabled = true;
     try {
@@ -238,7 +271,10 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
         await uploadBytes(sRef(storage, fPath), file);
         fUrl = await getDownloadURL(sRef(storage, fPath));
       }
-      await push(ref(db, 'segnalazioni'), { cat: selectedCat, desc: d, lat: latlng.lat, lng: latlng.lng, fotoUrl: fUrl, fotoPath: fPath, status: 'non-risolta', ts: Date.now() });
+      await push(ref(db, 'segnalazioni'), { 
+        cat: selectedCat, desc: d, lat: marker.getLatLng().lat, lng: marker.getLatLng().lng, 
+        fotoUrl: fUrl, fotoPath: fPath, status: 'non-risolta', ts: Date.now(), verificato: false 
+      });
       location.reload();
     } catch (e) { b.innerText = "INVIA"; b.disabled = false; }
   }
