@@ -6,41 +6,54 @@
 <title>Maglie senza barriere</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+
 <style>
 :root { --bg: #0a0c10; --surface: #111318; --border: rgba(255,255,255,.07); --text: #e8eaf0; --accent: #e03535; --font-body: 'Barlow', sans-serif; --blue: #2d7de8; --green: #2ecc71; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font-family: var(--font-body); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
 #topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
 .logo { font-weight: 800; font-size: 16px; text-transform: uppercase; } .logo span { color: var(--accent); }
+
 #main { display: flex; flex: 1; overflow: hidden; flex-direction: column; }
 @media (min-width: 768px) { #main { flex-direction: row; } }
+
 #map-wrap { flex: 1; min-height: 40vh; position: relative; display: flex; flex-direction: column; }
 #map { flex: 1; width: 100%; z-index: 1; }
-#filter-container { background: var(--surface); padding: 10px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; z-index: 999; }
+
+#filter-container { background: var(--surface); padding: 10px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; z-index: 999; flex-wrap: wrap; }
 .dropbtn, .nav-btn, .gps-btn { background: rgba(255,255,255,0.05); color: white; padding: 8px 12px; font-size: 10px; font-weight: 800; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; }
 .nav-btn { background: var(--blue); border: none; }
 .gps-btn { background: var(--green); border: none; }
+
 #sidebar { background: var(--surface); flex: 1; overflow-y: auto; padding: 15px; border-top: 2px solid var(--border); z-index: 2; }
 @media (min-width: 768px) { #sidebar { width: 400px; flex: none; border-left: 1px solid var(--border); } }
+
 .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
 .cat-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 10px; border-radius: 8px; font-size: 11px; cursor: pointer; text-align: center; }
 .cat-btn.active { border-color: var(--accent); background: rgba(224,53,53,0.1); }
+
 textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-family: inherit; resize: none; }
-.btn-primary { width: 100%; background: var(--accent); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 800; cursor: pointer; }
-.btn-ai { width: 100%; background: var(--blue); color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 11px; margin-bottom: 15px; }
-#chat-area { display: none; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; margin-bottom: 15px; border: 1px solid var(--blue); }
+.btn-primary { width: 100%; background: var(--accent); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 800; cursor: pointer; transition: opacity 0.3s; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .info-box { font-size: 11px; color: #aaa; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid var(--border); line-height: 1.5; }
 .privacy-alert { font-size: 10px; color: #888; text-align: center; margin-bottom: 10px; font-style: italic; }
+
 .report-item { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--accent); }
 .status-select { background: #222; color: white; border: 1px solid var(--border); padding: 6px; border-radius: 4px; font-size: 11px; margin-top: 8px; width: 100%; display: none; }
+
 .custom-pin { width: 32px; height: 32px; border-radius: 50% 50% 50% 0; position: absolute; transform: rotate(-45deg); left: 50%; top: 50%; margin: -32px 0 0 -16px; border: 2px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; }
 .pin-icon { transform: rotate(45deg); font-size: 16px; }
+
+/* Ricerca */
 .leaflet-control-geocoder { background: #1a1a1a !important; border: 1px solid var(--border) !important; border-radius: 8px !important; }
-.leaflet-control-geocoder-form input { color: white !important; background: transparent !important; border:none !important; outline:none !important; }
+.leaflet-control-geocoder-form input { color: white !important; font-size: 12px !important; }
 .leaflet-control-geocoder-icon { filter: invert(1); }
 </style>
 </head>
 <body>
+
 <div id="topbar">
   <div class="logo">MAGLIE<span> SENZA BARRIERE</span></div>
   <div style="text-align: right;">
@@ -48,6 +61,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     <button onclick="abilitaGestione()" style="font-size: 10px; background:none; border:none; color:#5a6070; cursor:pointer;">🔐 ADMIN</button>
   </div>
 </div>
+
 <div id="main">
   <div id="map-wrap">
     <div id="filter-container">
@@ -63,36 +77,40 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     </div>
     <div id="map"></div>
   </div>
+
   <div id="sidebar">
-    <button class="btn-ai" id="btnShowAi" onclick="toggleAI()">🤖 AIUTO INTELLIGENZA ARTIFICIALE</button>
-    <div id="chat-area">
-        <div style="font-size: 12px; color: var(--blue); margin-bottom: 8px; font-weight: 600;">Assistente C.F.P.</div>
-        <input type="text" id="ai-input" style="width:100%; background:rgba(255,255,255,0.1); border:1px solid var(--blue); color:white; padding:8px; border-radius:5px; outline:none;" placeholder="Scrivi qui all'agente...">
-    </div>
     <div class="cat-grid">
       <div class="cat-btn active" onclick="setCat(this, 'Architettonica')">♿ Barriera</div>
       <div class="cat-btn" onclick="setCat(this, 'Occupazione')">🚗 Auto</div>
       <div class="cat-btn" onclick="setCat(this, 'Manutenzione')">⚠️ Manutenzione</div>
       <div class="cat-btn" onclick="setCat(this, 'Accessibile')">✅ Luogo OK</div>
     </div>
+    
     <textarea id="desc" rows="3" placeholder="Descrivi il punto..."></textarea>
     <input type="file" id="foto" accept="image/*" style="margin-bottom:10px; font-size:11px; width:100%;">
+    
     <div class="privacy-alert">⚠️ Per motivi di privacy, non fotografare targhe o volti.</div>
+    
     <button class="btn-primary" id="btnInvia">INVIA SEGNALAZIONE</button>
+    
     <div class="info-box">
         <strong>IL PROGETTO</strong><br>
         Iniziativa dell'Associazione <b>Chi si ferma è perduto (C.F.P.)</b>.<br>
-        Mappatura partecipata per rendere Maglie e Morigino accessibili a tutti. Segnala ostacoli o luoghi virtuosi.
+        Mappatura partecipata per rendere Maglie e Morigino accessibili a tutti.
     </div>
+    
     <div id="lista" style="margin-top:20px;"></div>
   </div>
 </div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
   import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
   const cfg = {
     apiKey: "AIzaSyCBBv6qJW1PdrxLC0s-yjIP96B9SyXORL4",
     authDomain: "maglie-senza-ostacoli.firebaseapp.com",
@@ -102,9 +120,11 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     appId: "1:727829599519:web:53b1f3d84d8a4425f98c2a",
     databaseURL: "https://maglie-senza-ostacoli-default-rtdb.europe-west1.firebasedatabase.app"
   };
+
   const app = initializeApp(cfg);
   const db = getDatabase(app);
   const storage = getStorage(app);
+
   let selectedCat = 'Architettonica';
   let activeFilter = 'TUTTE';
   let isAtMorigino = false;
@@ -112,30 +132,32 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   let rawData = {};
   let isAdmin = false;
   let markersLayer = L.layerGroup();
+
   const map = L.map('map').setView([40.1194, 18.2997], 15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
   markersLayer.addTo(map);
-  L.Control.geocoder({ defaultMarkGeocode: false, placeholder: "Cerca via...", errorMessage: "Indirizzo non trovato" })
-  .on('markgeocode', function(e) {
-    const latlng = e.geocode.center;
-    map.setView(latlng, 18);
-    if(marker) map.removeLayer(marker);
-    marker = L.marker(latlng).addTo(map);
-  }).addTo(map);
+
+  L.Control.geocoder({ defaultMarkGeocode: false, placeholder: "Cerca via..." })
+    .on('markgeocode', e => { map.setView(e.geocode.center, 18); if(marker) map.removeLayer(marker); marker = L.marker(e.geocode.center).addTo(map); })
+    .addTo(map);
+
   map.on('click', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
+
   window.trovaGPS = () => map.locate({setView: true, maxZoom: 17});
   map.on('locationfound', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
+
   window.toggleLocation = () => {
     const btn = document.getElementById('toggleBtn');
     if (!isAtMorigino) { map.flyTo([40.1417, 18.3098], 17); btn.innerText = "📍 RITORNA A MAGLIE"; isAtMorigino = true; }
     else { map.flyTo([40.1194, 18.2997], 15); btn.innerText = "📍 VAI A MORIGINO"; isAtMorigino = false; }
   };
-  window.toggleAI = () => { const area = document.getElementById('chat-area'); area.style.display = area.style.display === 'none' ? 'block' : 'none'; };
-  document.getElementById('ai-input').addEventListener('keypress', function (e) { if (e.key === 'Enter') { document.getElementById('desc').value = "[AI ASSISTANT]: " + this.value; this.value = ""; alert("Testo preparato!"); } });
+
   window.setCat = (el, cat) => { document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active')); el.classList.add('active'); selectedCat = cat; };
   window.abilitaGestione = () => { if(prompt("Password Admin:") === "maglie2025") { isAdmin = true; renderData(); } };
   window.applyFilter = (f) => { activeFilter = f; renderData(); };
+
   onValue(ref(db, 'segnalazioni'), snap => { rawData = snap.val() || {}; renderData(); });
+
   function renderData() {
     const lista = document.getElementById('lista');
     lista.innerHTML = ""; markersLayer.clearLayers();
@@ -146,11 +168,12 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
       const iconChar = s.cat === 'Occupazione' ? '🚗' : (s.cat === 'Manutenzione' ? '⚠️' : (s.cat === 'Accessibile' ? '✅' : '♿'));
       const icon = L.divIcon({ className:'custom-div-icon', html:`<div class="custom-pin" style="background:${color}"><span class="pin-icon">${iconChar}</span></div>`, iconSize:[32,42], iconAnchor:[16,42] });
       L.marker([s.lat, s.lng], {icon}).addTo(markersLayer).bindPopup(`<b>${s.cat}</b><br>${s.desc}`);
+
       const item = document.createElement('div');
       item.className = 'report-item';
       item.style.borderLeftColor = color;
       item.innerHTML = `<strong>${iconChar} ${s.cat}</strong><p style="font-size:11px;">${s.desc}</p>
-        ${s.fotoUrl ? `<img src="${s.fotoUrl}" style="width:100%; border-radius:5px; margin-top:5px;">` : ''}
+        ${s.fotoUrl ? `<img src="${s.fotoUrl}" style="width:100%; border-radius:5px; margin-top:5px; cursor:pointer" onclick="window.open('${s.fotoUrl}')">` : ''}
         <select class="status-select" style="${isAdmin?'display:block':''}" onchange="updateSt('${id}', this.value)">
           <option value="non-risolta" ${s.status==='non-risolta'?'selected':''}>🔴 Segnalata</option>
           <option value="risolta" ${s.status==='risolta'?'selected':''}>🟢 Risolta</option>
@@ -159,22 +182,53 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
       lista.appendChild(item);
     });
   }
-  window.updateSt = async (id, val) => { if(val==='elimina') { if(confirm("Elimina?")) await remove(ref(db, 'segnalazioni/'+id)); } else await update(ref(db, 'segnalazioni/'+id), {status:val}); };
+
+  window.updateSt = async (id, val) => {
+    if(val==='elimina') { if(confirm("Elimina?")) await remove(ref(db, 'segnalazioni/'+id)); }
+    else await update(ref(db, 'segnalazioni/'+id), {status:val});
+  };
+
   document.getElementById('btnInvia').onclick = async () => {
     const d = document.getElementById('desc').value.trim();
     const file = document.getElementById('foto').files[0];
-    if(!marker || !d) return alert("Punta la mappa e scrivi!");
-    const btn = document.getElementById('btnInvia'); btn.disabled = true; btn.innerText = "INVIO IN CORSO...";
-    let fUrl = "";
+    const btn = document.getElementById('btnInvia');
+
+    if(!marker || !d) return alert("Assicurati di aver messo un punto sulla mappa e scritto una descrizione!");
+    
+    btn.disabled = true;
+    btn.innerText = "INVIO IN CORSO...";
+
     try {
+      let fUrl = "";
       if(file) {
-        const p = 'foto/'+Date.now()+'.jpg';
-        await uploadBytes(sRef(storage, p), file);
-        fUrl = await getDownloadURL(sRef(storage, p));
+        // Controllo peso file (max 5MB consigliato)
+        if(file.size > 5 * 1024 * 1024) throw new Error("La foto è troppo pesante. Usa un'immagine più piccola.");
+        
+        const p = 'foto/' + Date.now() + '.jpg';
+        const fileRef = sRef(storage, p);
+        await uploadBytes(fileRef, file);
+        fUrl = await getDownloadURL(fileRef);
       }
-      await push(ref(db, 'segnalazioni'), { cat:selectedCat, desc:d, lat:marker.getLatLng().lat, lng:marker.getLatLng().lng, fotoUrl:fUrl, status:'non-risolta', ts:Date.now() });
+
+      await push(ref(db, 'segnalazioni'), { 
+        cat: selectedCat, 
+        desc: d, 
+        lat: marker.getLatLng().lat, 
+        lng: marker.getLatLng().lng, 
+        fotoUrl: fUrl, 
+        status: 'non-risolta', 
+        ts: Date.now() 
+      });
+
+      alert("Segnalazione inviata con successo!");
       location.reload();
-    } catch (e) { alert("Errore!"); btn.disabled = false; btn.innerText = "INVIA SEGNALAZIONE"; }
+
+    } catch (e) {
+      console.error(e);
+      alert("ERRORE: " + e.message + "\nIl caricamento è fallito. Riprova con una foto più piccola o senza foto.");
+      btn.disabled = false;
+      btn.innerText = "INVIA SEGNALAZIONE";
+    }
   };
 </script>
 </body>
