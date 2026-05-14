@@ -26,7 +26,6 @@
   --font-body: 'Barlow', sans-serif;
 }
 
-/* Reset base */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { 
   background: var(--bg); 
@@ -38,7 +37,6 @@ body {
   overflow: hidden; 
 }
 
-/* Topbar compatta */
 #topbar {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -51,15 +49,12 @@ body {
 .logo { font-family: var(--font-display); font-weight: 800; line-height: 1; font-size: 18px; }
 .logo span { color: var(--accent); }
 
-/* Layout flessibile */
 #main { display: flex; flex: 1; overflow: hidden; flex-direction: column; }
 @media (min-width: 768px) { #main { flex-direction: row; } }
 
-/* Mappa */
 #map-wrap { flex: 1; min-height: 40vh; position: relative; z-index: 1; }
 #map { height: 100%; width: 100%; }
 
-/* Sidebar/Form Mobile */
 #sidebar {
   background: var(--surface);
   flex: 1.2;
@@ -72,7 +67,6 @@ body {
   #sidebar { width: 400px; flex: none; border-top: none; border-left: 1px solid var(--border); }
 }
 
-/* UI Elements */
 .section-title { font-family: var(--font-display); font-size: 18px; text-transform: uppercase; margin-bottom: 15px; color: var(--accent); }
 .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
 .cat-btn { 
@@ -91,13 +85,6 @@ textarea {
   padding: 15px; border-radius: 10px; font-weight: 800; font-family: var(--font-display);
   font-size: 18px; letter-spacing: 1px; cursor: pointer;
 }
-
-.nav-mobile {
-  display: flex; background: var(--surface); border-top: 1px solid var(--border);
-  padding: 10px; justify-content: space-around;
-}
-.nav-btn { background: none; border: none; color: var(--muted); font-size: 12px; font-weight: 600; }
-.nav-btn.active { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -138,16 +125,17 @@ textarea {
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+  // CONFIGURAZIONE NUOVO DATABASE "MAGLIE-SENZA-OSTACOLI"
   const cfg = {
-    apiKey: "AIzaSyCrxqfyDQPZABGt3eWDvhzyRyaJrsipJlA",
-    authDomain: "fantasocio.firebaseapp.com",
-    databaseURL: "https://fantasocio-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "fantasocio",
-    storageBucket: "fantasocio.appspot.com",
-    messagingSenderId: "913473439775",
-    appId: "1:913473439775:web:f60b4fae1ed694c997ed2a"
+    apiKey: "AIzaSyCBBv6qJW1PdrxLC0s-yjIP96B9SyXORL4",
+    authDomain: "maglie-senza-ostacoli.firebaseapp.com",
+    projectId: "maglie-senza-ostacoli",
+    storageBucket: "maglie-senza-ostacoli.firebasestorage.app",
+    messagingSenderId: "727829599519",
+    appId: "1:727829599519:web:53b1f3d84d8a4425f98c2a",
+    databaseURL: "https://maglie-senza-ostacoli-default-rtdb.europe-west1.firebasedatabase.app"
   };
 
   const app = initializeApp(cfg);
@@ -157,6 +145,16 @@ textarea {
   let marker;
   const map = L.map('map', {zoomControl: false}).setView([40.1186, 18.2985], 15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+  // Carica i marker esistenti dal database
+  onValue(ref(db, 'segnalazioni'), (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      Object.values(data).forEach(s => {
+        L.marker([s.lat, s.lng]).addTo(map).bindPopup(s.desc);
+      });
+    }
+  });
 
   map.on('click', (e) => {
     if (marker) map.removeLayer(marker);
@@ -180,7 +178,7 @@ textarea {
       lng: marker.getLatLng().lng,
       ts: Date.now()
     });
-    alert("Inviato!");
+    alert("Segnalazione inviata al nuovo database!");
     location.reload();
   };
 </script>
