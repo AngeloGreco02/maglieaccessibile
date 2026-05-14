@@ -4,79 +4,42 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>Maglie Senza Ostacoli</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-
 <style>
-:root {
-  --bg: #0a0c10;
-  --surface: #111318;
-  --border: rgba(255,255,255,.07);
-  --text: #e8eaf0;
-  --muted: #5a6070;
-  --accent: #e03535;
-  --font-display: 'Barlow Condensed', sans-serif;
-  --font-body: 'Barlow', sans-serif;
-}
-
+:root { --bg: #0a0c10; --surface: #111318; --border: rgba(255,255,255,.07); --text: #e8eaf0; --accent: #e03535; --font-body: 'Barlow', sans-serif; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font-family: var(--font-body); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-
 #topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
-.logo { font-family: var(--font-display); font-weight: 800; line-height: 1; font-size: 18px; }
-.logo span { color: var(--accent); }
-
+.logo { font-weight: 800; font-size: 18px; } .logo span { color: var(--accent); }
 #main { display: flex; flex: 1; overflow: hidden; flex-direction: column; }
 @media (min-width: 768px) { #main { flex-direction: row; } }
-
-#map-wrap { flex: 1; min-height: 45vh; position: relative; z-index: 1; }
+#map-wrap { flex: 1; min-height: 40vh; position: relative; }
 #map { height: 100%; width: 100%; }
-
-#sidebar { background: var(--surface); flex: 1; overflow-y: auto; border-top: 2px solid var(--border); padding: 15px; -webkit-overflow-scrolling: touch; }
-@media (min-width: 768px) { #sidebar { width: 400px; flex: none; border-top: none; border-left: 1px solid var(--border); } }
-
-.section-title { font-family: var(--font-display); font-size: 18px; text-transform: uppercase; margin-bottom: 15px; color: var(--accent); }
-.cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-.cat-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; font-size: 12px; text-align: center; cursor: pointer; }
-.cat-btn.active { border-color: var(--accent); background: rgba(224,53,53,0.1); }
-
-textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; resize: none; margin-bottom: 15px; font-family: inherit; }
-.btn-primary { width: 100%; background: var(--accent); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 800; font-family: var(--font-display); font-size: 18px; cursor: pointer; }
+#sidebar { background: var(--surface); flex: 1; overflow-y: auto; padding: 15px; border-top: 2px solid var(--border); }
+@media (min-width: 768px) { #sidebar { width: 400px; flex: none; border-left: 1px solid var(--border); } }
+textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+.btn-primary { width: 100%; background: var(--accent); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 800; cursor: pointer; }
+#preview { width: 100%; max-height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; display: none; }
 </style>
 </head>
 <body>
-
-<div id="topbar">
-  <div class="logo">MAGLIE<br><span>SENZA OSTACOLI</span></div>
-  <div id="status" style="font-size: 11px; font-weight: 700; color: var(--muted)">UN'APP DI ANGELO GRECO</div>
-</div>
-
+<div id="topbar"><div class="logo">MAGLIE<br><span>SENZA OSTACOLI</span></div><div style="font-size: 11px; color: #5a6070">UN'APP DI ANGELO GRECO</div></div>
 <div id="main">
-  <div id="map-wrap">
-    <div id="map"></div>
-  </div>
-
+  <div id="map-wrap"><div id="map"></div></div>
   <div id="sidebar">
-    <div class="section-title">Nuova Segnalazione</div>
-    <div class="cat-grid">
-      <div class="cat-btn active" onclick="setCat(this, 'Architettonica')">♿ Architettonica</div>
-      <div class="cat-btn" onclick="setCat(this, 'Occupazione')">🚗 Occupazione</div>
-      <div class="cat-btn" onclick="setCat(this, 'Manutenzione')">⚠️ Manutenzione</div>
-      <div class="cat-btn" onclick="setCat(this, 'Sensoriale')">🚦 Sensoriale</div>
-    </div>
-    <textarea id="desc" placeholder="Descrivi la barriera..."></textarea>
-    <button class="btn-primary" onclick="invia()">INVIA SEGNALAZIONE</button>
+    <h2 style="color: var(--accent); margin-bottom: 15px;">Segnala Barriera</h2>
+    <textarea id="desc" placeholder="Descrivi il problema..."></textarea>
+    <img id="preview">
+    <input type="file" id="foto" accept="image/*" style="margin-bottom: 15px; color: #5a6070">
+    <button class="btn-primary" id="btnInvia">CARICA E INVIA</button>
   </div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
   const cfg = {
     apiKey: "AIzaSyCBBv6qJW1PdrxLC0s-yjIP96B9SyXORL4",
@@ -90,55 +53,50 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
 
   const app = initializeApp(cfg);
   const db = getDatabase(app);
+  const storage = getStorage(app);
 
-  let selectedCat = 'Architettonica';
   let marker;
-
-  // Inizializza mappa su Maglie come fallback
-  const map = L.map('map', {zoomControl: false}).setView([40.1209, 18.2323], 16);
+  const map = L.map('map', {zoomControl: false}).setView([40.1209, 18.2323], 15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  map.locate({setView: true, maxZoom: 16});
 
-  // GEOLOCALIZZAZIONE AUTOMATICA
-  map.locate({setView: true, maxZoom: 18});
+  map.on('locationfound', e => { marker = L.marker(e.latlng).addTo(map); });
+  map.on('click', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
 
-  map.on('locationfound', (e) => {
-    L.circle(e.latlng, e.accuracy / 2).addTo(map); // Cerchio di precisione
-    if (marker) map.removeLayer(marker);
-    marker = L.marker(e.latlng).addTo(map); // Mette il marker dove sei tu
+  onValue(ref(db, 'segnalazioni'), snap => {
+    const data = snap.val();
+    if(data) Object.values(data).forEach(s => {
+      let popup = s.desc;
+      if(s.fotoUrl) popup += `<br><img src="${s.fotoUrl}" style="width:100px; margin-top:5px; border-radius:5px">`;
+      L.marker([s.lat, s.lng]).addTo(map).bindPopup(popup);
+    });
   });
 
-  map.on('locationerror', () => {
-    console.log("Posizione non trovata, resto su Maglie.");
-  });
-
-  // Carica segnalazioni esistenti
-  onValue(ref(db, 'segnalazioni'), (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      Object.values(data).forEach(s => {
-        L.marker([s.lat, s.lng]).addTo(map).bindPopup(`<b>${s.cat}</b><br>${s.desc}`);
-      });
-    }
-  });
-
-  map.on('click', (e) => {
-    if (marker) map.removeLayer(marker);
-    marker = L.marker(e.latlng).addTo(map);
-  });
-
-  window.setCat = (el, cat) => {
-    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-    el.classList.add('active');
-    selectedCat = cat;
+  document.getElementById('foto').onchange = e => {
+    const reader = new FileReader();
+    reader.onload = () => { const img = document.getElementById('preview'); img.src = reader.result; img.display = 'block'; };
+    reader.readAsDataURL(e.target.files[0]);
   };
 
-  window.invia = async () => {
+  document.getElementById('btnInvia').onclick = async () => {
     const d = document.getElementById('desc').value;
-    if (!marker || !d) return alert("Segna il punto e scrivi cosa non va!");
+    const file = document.getElementById('foto').files[0];
+    if(!marker || !d) return alert("Inserisci descrizione e posizione!");
+    
+    document.getElementById('btnInvia').innerText = "CARICAMENTO...";
+    let fotoUrl = "";
+
+    if(file) {
+      const storageRef = sRef(storage, 'foto/' + Date.now() + "_" + file.name);
+      await uploadBytes(storageRef, file);
+      fotoUrl = await getDownloadURL(storageRef);
+    }
+
     await push(ref(db, 'segnalazioni'), {
-      cat: selectedCat, desc: d, lat: marker.getLatLng().lat, lng: marker.getLatLng().lng, ts: Date.now()
+      desc: d, lat: marker.getLatLng().lat, lng: marker.getLatLng().lng, fotoUrl: fotoUrl, ts: Date.now()
     });
-    alert("Inviato!");
+    
+    alert("Segnalazione inviata con successo!");
     location.reload();
   };
 </script>
