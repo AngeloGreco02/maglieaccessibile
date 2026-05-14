@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
-:root { --bg: #0a0c10; --surface: #111318; --border: rgba(255,255,255,.07); --text: #e8eaf0; --accent: #e03535; --font-body: 'Barlow', sans-serif; --blue: #2d7de8; }
+:root { --bg: #0a0c10; --surface: #111318; --border: rgba(255,255,255,.07); --text: #e8eaf0; --accent: #e03535; --font-body: 'Barlow', sans-serif; --blue: #2d7de8; --green: #2ecc71; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font-family: var(--font-body); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 #topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
@@ -16,10 +16,17 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 @media (min-width: 768px) { #main { flex-direction: row; } }
 #map-wrap { flex: 1; min-height: 45vh; position: relative; display: flex; flex-direction: column; }
 #map { flex: 1; width: 100%; }
-#filter-bar { background: var(--surface); padding: 10px; display: flex; gap: 8px; overflow-x: auto; border-bottom: 1px solid var(--border); white-space: nowrap; }
-.filter-chip { padding: 6px 12px; border-radius: 20px; font-size: 10px; font-weight: 800; cursor: pointer; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--text); }
-.filter-chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
-.nav-btn { background: var(--blue) !important; color: white !important; border: none !important; min-width: 130px; text-align: center; }
+
+/* Barra Filtri Compatta */
+#filter-container { background: var(--surface); padding: 10px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; z-index: 999; }
+.dropdown { position: relative; display: inline-block; }
+.dropbtn { background: rgba(255,255,255,0.05); color: white; padding: 8px 15px; font-size: 11px; font-weight: 800; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; }
+.dropdown-content { display: none; position: absolute; background-color: var(--surface); min-width: 160px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5); z-index: 1001; border: 1px solid var(--border); border-radius: 8px; margin-top: 5px; }
+.dropdown-content div { color: var(--text); padding: 12px 16px; text-decoration: none; display: block; font-size: 11px; cursor: pointer; border-bottom: 1px solid var(--border); }
+.dropdown-content div:hover { background-color: rgba(255,255,255,0.05); }
+.show { display: block; }
+
+.nav-btn { background: var(--blue); color: white; padding: 8px 15px; font-size: 11px; font-weight: 800; border: none; border-radius: 20px; cursor: pointer; }
 
 #sidebar { background: var(--surface); flex: 1; overflow-y: auto; padding: 15px; border-top: 2px solid var(--border); }
 @media (min-width: 768px) { #sidebar { width: 400px; flex: none; border-left: 1px solid var(--border); } }
@@ -45,9 +52,18 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
 </div>
 <div id="main">
   <div id="map-wrap">
-    <div id="filter-bar">
-        <div class="filter-chip active" onclick="filterMap('TUTTE', this)">TUTTE</div>
-        <div id="toggleMorigino" class="filter-chip nav-btn" onclick="toggleLocation()">📍 VAI A MORIGINO</div>
+    <div id="filter-container">
+        <div class="dropdown">
+            <button onclick="toggleDropdown()" class="dropbtn">🔍 FILTRI: <span id="currentFilterText">TUTTE</span></button>
+            <div id="myDropdown" class="dropdown-content">
+                <div onclick="applyFilter('TUTTE')">MOSTRA TUTTE</div>
+                <div onclick="applyFilter('Architettonica')">♿ BARRIERE</div>
+                <div onclick="applyFilter('Occupazione')">🚗 OCCUPAZIONE</div>
+                <div onclick="applyFilter('Manutenzione')">⚠️ MANUTENZIONE</div>
+                <div onclick="applyFilter('Accessibile')">✅ LUOGHI OK</div>
+            </div>
+        </div>
+        <button id="toggleMorigino" class="nav-btn" onclick="toggleLocation()">📍 VAI A MORIGINO</button>
     </div>
     <div id="map"></div>
   </div>
@@ -57,13 +73,14 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
       <div class="cat-btn active" onclick="setCat(this, 'Architettonica')">♿ Barriera</div>
       <div class="cat-btn" onclick="setCat(this, 'Occupazione')">🚗 Occupazione</div>
       <div class="cat-btn" onclick="setCat(this, 'Manutenzione')">⚠️ Manutenzione</div>
-      <div class="cat-btn" onclick="setCat(this, 'Accessibile')">✅ Luogo OK</div>
+      <div class="cat-btn plus" onclick="setCat(this, 'Accessibile')">✅ Luogo OK</div>
     </div>
-    <textarea id="desc" rows="3" placeholder="Descrivi il punto..."></textarea>
+    <textarea id="desc" rows="3" placeholder="Descrivi qui il problema o il punto di forza..."></textarea>
     <img id="preview">
     <input type="file" id="foto" accept="image/*" style="margin-bottom:15px; font-size:12px; width:100%;">
     <button class="btn-primary" id="btnInvia">INVIA SEGNALAZIONE</button>
-    <div id="lista" style="margin-top:20px;"></div>
+    <div class="section-title" style="margin-top:20px;">Feed Segnalazioni</div>
+    <div id="lista"></div>
   </div>
 </div>
 
@@ -87,6 +104,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   const storage = getStorage(app);
 
   let selectedCat = 'Architettonica';
+  let activeFilter = 'TUTTE';
   let isAtMorigino = false;
   let marker;
   let isAdmin = false;
@@ -99,7 +117,19 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
   markersLayer.addTo(map);
 
-  // LOGICA TOGGLE MAGLIE-MORIGINO
+  // Dropdown Logic
+  window.toggleDropdown = () => document.getElementById("myDropdown").classList.toggle("show");
+  window.applyFilter = (filter) => {
+    activeFilter = filter;
+    document.getElementById("currentFilterText").innerText = filter.toUpperCase();
+    document.getElementById("myDropdown").classList.remove("show");
+    renderData();
+  };
+  window.onclick = (event) => { if (!event.target.matches('.dropbtn')) {
+    var dropdowns = document.getElementsByClassName("dropdown-content");
+    for (var i = 0; i < dropdowns.length; i++) { if (dropdowns[i].classList.contains('show')) dropdowns[i].classList.remove('show'); }
+  }};
+
   window.toggleLocation = () => {
     const btn = document.getElementById('toggleMorigino');
     if (!isAtMorigino) {
@@ -121,12 +151,6 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     selectedCat = cat;
   };
 
-  window.filterMap = (category, el) => {
-    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-    el.classList.add('active');
-    renderData(category);
-  };
-
   window.abilitaGestione = () => {
     if(prompt("Password Admin:") === "maglie2025") {
       isAdmin = true;
@@ -136,16 +160,16 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
 
   onValue(ref(db, 'segnalazioni'), snap => {
     rawData = snap.val() || {};
-    renderData('TUTTE');
+    renderData();
   });
 
-  function renderData(filter) {
+  function renderData() {
     const lista = document.getElementById('lista');
     lista.innerHTML = "";
     markersLayer.clearLayers();
     Object.keys(rawData).reverse().forEach(id => {
       const s = rawData[id];
-      if (filter !== 'TUTTE' && s.cat !== filter) return;
+      if (activeFilter !== 'TUTTE' && s.cat !== activeFilter) return;
       
       const status = s.status || 'non-risolta';
       let color = s.cat === 'Accessibile' ? '#2d7de8' : (status === 'risolta' ? '#2ecc71' : '#e03535');
@@ -159,6 +183,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
       item.innerHTML = `
         <div style="font-size:12px;"><strong>${s.cat}</strong></div>
         <p style="font-size:11px; color:#ccc;">${s.desc}</p>
+        ${s.fotoUrl ? `<img src="${s.fotoUrl}" style="width:100%; height:100px; object-fit:cover; border-radius:5px; margin-top:8px;">` : ''}
         <select class="status-select" onchange="aggiornaStato('${id}', this.value)" style="${isAdmin ? 'display:block' : 'none'}">
           <option value="non-risolta">🔴 Segnalata</option>
           <option value="risolta">🟢 Risolta</option>
