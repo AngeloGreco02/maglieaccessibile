@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
-:root { --bg: #0a0c10; --surface: #111318; --border: rgba(255,255,255,.07); --text: #e8eaf0; --accent: #e03535; --font-body: 'Barlow', sans-serif; --blue: #2d7de8; --yellow: #f1c40f; --green: #2ecc71; }
+:root { --bg: #0a0c10; --surface: #111318; --border: rgba(255,255,255,.07); --text: #e8eaf0; --accent: #e03535; --font-body: 'Barlow', sans-serif; --blue: #2d7de8; --yellow: #f1c40f; --green: #2ecc71; --purple: #a55eea; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font-family: var(--font-body); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 #topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
@@ -29,14 +29,15 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
 .report-item { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--accent); position: relative; }
 .status-select { background: #222; color: white; border: 1px solid var(--border); padding: 6px; border-radius: 4px; font-size: 11px; margin-top: 8px; width: 100%; display: none; }
 .badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
-.verified-tag { color: var(--green); font-size: 10px; font-weight: 800; margin-top: 5px; display: block; }
+.verified-tag { display: inline-block; background: rgba(46, 204, 113, 0.1); color: var(--green); border: 1px solid var(--green); font-size: 8px; padding: 1px 5px; border-radius: 3px; font-weight: 900; margin-top: 5px; }
+.critical-tag { display: inline-block; background: rgba(165, 94, 234, 0.2); color: var(--purple); border: 1px solid var(--purple); font-size: 8px; padding: 1px 5px; border-radius: 3px; font-weight: 900; margin-top: 5px; margin-left: 5px; }
 </style>
 </head>
 <body>
 <div id="topbar">
   <div class="logo" onclick="location.reload()">MAGLIE<span> SENZA OSTACOLI</span></div>
   <div style="text-align: right;">
-    <div style="font-size: 10px; color: #5a6070">APP CREATA DA ANGELO GRECO</div>
+    <div style="font-size: 10px; color: #5a6070">APP DI ANGELO GRECO</div>
     <button onclick="abilitaGestione()" style="font-size: 10px; background:none; border:none; color:#5a6070; cursor:pointer;">🔐 ADMIN</button>
   </div>
 </div>
@@ -50,12 +51,12 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
       <div class="cat-btn" onclick="setCat(this, 'Manutenzione')">⚠️ Manutenzione</div>
       <div class="cat-btn plus" onclick="setCat(this, 'Accessibile')">✅ Luogo OK</div>
     </div>
-    <textarea id="desc" placeholder="Descrivi il problema o il luogo accessibile..."></textarea>
+    <textarea id="desc" placeholder="Cosa dobbiamo segnalare oggi?"></textarea>
     <input type="file" id="foto" accept="image/*" style="margin-bottom:10px; font-size:11px; width:100%;">
     <button class="btn-primary" id="btnInvia">INVIA SEGNALAZIONE</button>
-    <div class="privacy-note">⚠️ Non inquadrare volti di persone o targhe di veicoli.</div>
+    <div class="privacy-note">⚠️ Le segnalazioni di auto scadono automaticamente dopo 24 ore.</div>
     
-    <div class="section-title">Ultime Attività</div>
+    <div class="section-title">Feed Attività</div>
     <div id="lista"></div>
   </div>
 </div>
@@ -99,7 +100,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     if(prompt("Password Admin:") === "maglie2025") {
       isAdmin = true;
       document.querySelectorAll('.status-select').forEach(s => s.style.display = 'block');
-      alert("Modalità Gestione Attiva - Puoi verificare e modificare gli stati.");
+      alert("Modalità Admin Attiva.");
     }
   };
 
@@ -110,11 +111,29 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     map.eachLayer(l => { if(l instanceof L.Marker && l !== marker) map.removeLayer(l); });
 
     if(data) {
+      const counts = {}; // Per contare i punti critici
+      Object.values(data).forEach(s => {
+        const key = `${s.lat.toFixed(4)},${s.lng.toFixed(4)}`;
+        counts[key] = (counts[key] || 0) + 1;
+      });
+
       Object.keys(data).reverse().forEach(id => {
         const s = data[id];
+        const now = Date.now();
+        
+        // CANCELLAZIONE AUTOMATICA: Se Occupazione e più vecchia di 24 ore
+        if(s.cat === 'Occupazione' && (now - s.ts) > 86400000 && s.status !== 'risolta') {
+          remove(ref(db, 'segnalazioni/' + id));
+          return;
+        }
+
         const status = s.status || 'non-risolta';
         const isAccessibile = s.cat === 'Accessibile';
+        const key = `${s.lat.toFixed(4)},${s.lng.toFixed(4)}`;
+        const isCritical = counts[key] > 2;
+
         let color = isAccessibile ? '#2d7de8' : (status === 'in-carico' ? '#f1c40f' : (status === 'risolta' ? '#2ecc71' : '#e03535'));
+        if(isCritical && s.cat === 'Occupazione') color = '#a55eea'; // Viola per i recidivi
 
         const icon = L.divIcon({
           className: 'custom-icon',
@@ -130,15 +149,16 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
         item.innerHTML = `
           <div style="display:flex; justify-content:space-between">
             <strong>${s.cat}</strong>
-            <span class="badge" style="background:${color}; color:${status==='in-carico'?'#000':'#fff'}">${status.toUpperCase()}</span>
+            <span class="badge" style="background:${color}; color:${status==='in-carico'||isCritical?'#000':'#fff'}">${isCritical && s.cat === 'Occupazione' ? 'PUNTO CRITICO' : status.toUpperCase()}</span>
           </div>
-          ${s.verificato ? '<span class="verified-tag">✅ VERIFICATO</span>' : ''}
+          ${s.verificato ? '<span class="verified-tag">✓ VERIFICATO</span>' : ''}
+          ${isCritical ? '<span class="critical-tag">🔥 RECIDIVO</span>' : ''}
           <p style="font-size:12px; margin:8px 0; color:#ccc;">${s.desc}</p>
           <select class="status-select" onchange="aggiornaStato('${id}', this.value, '${s.fotoPath || ''}')" style="${isAdmin ? 'display:block' : 'none'}">
-            <option value="non-risolta" ${status==='non-risolta'?'selected':''}>🔴 Non Risolta</option>
+            <option value="non-risolta" ${status==='non-risolta'?'selected':''}>🔴 Segnalata</option>
             <option value="in-carico" ${status==='in-carico'?'selected':''}>🟡 In Carico</option>
             <option value="risolta" ${status==='risolta'?'selected':''}>🟢 Risolta</option>
-            <option value="verificato">✅ Segna come Verificato</option>
+            <option value="verificato">✅ Segna come VERIFICATO</option>
             <option value="elimina">🗑 Elimina</option>
           </select>
         `;
@@ -160,7 +180,6 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     }
   };
 
-  // Funzione per comprimere l'immagine lato client
   const compressImage = async (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -184,10 +203,10 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   document.getElementById('btnInvia').onclick = async () => {
     const d = document.getElementById('desc').value.trim();
     const file = document.getElementById('foto').files[0];
-    if(!marker || !d) return alert("Posizione e descrizione obbligatorie!");
+    if(!marker || !d) return alert("Inserisci descrizione e tocca la mappa!");
     
     const b = document.getElementById('btnInvia');
-    b.innerText = "ELABORAZIONE..."; b.disabled = true;
+    b.innerText = "INVIO..."; b.disabled = true;
 
     try {
       let fUrl = "", fPath = "";
@@ -204,7 +223,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
       });
       location.reload();
     } catch (e) {
-      alert("Errore tecnico. Verifica la connessione.");
+      alert("Errore nell'invio.");
       b.innerText = "INVIA SEGNALAZIONE"; b.disabled = false;
     }
   };
