@@ -39,27 +39,9 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
 .export-btn { background: var(--blue); color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 10px; cursor: pointer; display: none; margin-bottom: 15px; }
 #preview { width: 100%; max-height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; display: none; }
 
-/* STILE PIN A GOCCIA CON ICONA */
-.custom-pin { 
-    width: 32px; 
-    height: 32px; 
-    border-radius: 50% 50% 50% 0; 
-    position: absolute; 
-    transform: rotate(-45deg); 
-    left: 50%; 
-    top: 50%; 
-    margin: -32px 0 0 -16px; 
-    border: 2px solid #fff; 
-    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.pin-icon {
-    transform: rotate(45deg); /* Riporta l'icona dritta */
-    font-size: 16px;
-    display: block;
-}
+/* NUOVO STILE PIN A GOCCIA CON ICONA */
+.custom-pin { width: 32px; height: 32px; border-radius: 50% 50% 50% 0; position: absolute; transform: rotate(-45deg); left: 50%; top: 50%; margin: -32px 0 0 -16px; border: 2px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; }
+.pin-icon { transform: rotate(45deg); font-size: 16px; }
 
 .leaflet-control-geocoder { background: var(--surface) !important; color: white !important; border: 1px solid var(--border) !important; }
 .leaflet-control-geocoder-form input { color: white !important; }
@@ -107,7 +89,6 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     <img id="preview">
     <input type="file" id="foto" accept="image/*" style="margin-bottom:15px; font-size:12px; width:100%;">
     <button class="btn-primary" id="btnInvia">INVIA SEGNALAZIONE</button>
-    
     <button class="export-btn" id="exportBtn" onclick="esportaDati()">📊 REPORT CSV</button>
     <div id="lista" style="margin-top:20px;"></div>
   </div>
@@ -139,9 +120,9 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   let activeFilter = 'TUTTE';
   let isAtMorigino = false;
   let marker;
-  let isAdmin = false;
   let rawData = {};
   let markersLayer = L.layerGroup();
+  let isAdmin = false;
 
   const bounds = [[40.0800, 18.2500], [40.1550, 18.3500]];
   const map = L.map('map', { zoomControl: true, maxBounds: bounds, maxBoundsViscosity: 1.0, minZoom: 13 }).setView([40.1194, 18.2997], 15);
@@ -149,6 +130,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
   markersLayer.addTo(map);
 
+  // GEOPROGRAMMAZIONE RICERCA
   L.Control.geocoder({
     defaultMarkGeocode: false,
     placeholder: "Cerca via a Maglie...",
@@ -163,13 +145,8 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   .addTo(map);
 
   window.toggleDropdown = () => document.getElementById("myDropdown").classList.toggle("show");
-  window.applyFilter = (f) => { 
-    activeFilter = f; 
-    document.getElementById("currentFilterText").innerText = f.toUpperCase(); 
-    document.getElementById("myDropdown").classList.remove("show"); 
-    renderData(); 
-  };
-
+  window.applyFilter = (f) => { activeFilter = f; document.getElementById("currentFilterText").innerText = f.toUpperCase(); document.getElementById("myDropdown").classList.remove("show"); renderData(); };
+  
   window.toggleLocation = () => {
     const btn = document.getElementById('toggleMorigino');
     if (!isAtMorigino) {
@@ -181,7 +158,11 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     }
   };
 
-  map.on('click', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
+  // AGGIUNTA PUNTO MANUALE (PUNTO D'ORA)
+  map.on('click', e => { 
+    if(marker) map.removeLayer(marker); 
+    marker = L.marker(e.latlng).addTo(map); 
+  });
 
   window.setCat = (el, cat) => {
     document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
@@ -192,12 +173,12 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     if(prompt("Password Admin:") === "maglie2025") {
       isAdmin = true; 
       document.querySelectorAll('.status-select, .export-btn').forEach(s => s.style.display = 'block');
-      alert("Gestione C.F.P. Attiva");
     }
   };
 
   onValue(ref(db, 'segnalazioni'), snap => {
-    rawData = snap.val() || {}; renderData();
+    rawData = snap.val() || {}; 
+    renderData();
   });
 
   function renderData() {
@@ -210,7 +191,6 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
       const status = s.status || 'non-risolta';
       let color = s.cat === 'Accessibile' ? '#2d7de8' : (status === 'risolta' ? '#2ecc71' : '#e03535');
       
-      // LOGICA ICONE PER CATEGORIA
       let iconChar = '♿';
       if(s.cat === 'Occupazione') iconChar = '🚗';
       if(s.cat === 'Manutenzione') iconChar = '⚠️';
@@ -236,11 +216,9 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
         </div>
         <p style="font-size:11px; color:#ccc; margin-top:5px;">${s.desc}</p>
         ${s.fotoUrl ? `<img src="${s.fotoUrl}" style="width:100%; height:100px; object-fit:cover; border-radius:5px; margin-top:8px;">` : ''}
-        ${s.verificato ? '<div style="color:#2ecc71; font-size:9px; font-weight:900; margin-top:5px;">✓ VERIFICATO</div>' : ''}
-        <select class="status-select" onchange="aggiornaStato('${id}', this.value, '${s.fotoPath || ''}')" style="${isAdmin ? 'display:block' : 'none'}">
-          <option value="non-risolta" ${status==='non-risolta'?'selected':''}>🔴 Segnalata</option>
-          <option value="risolta" ${status==='risolta'?'selected':''}>🟢 Risolta</option>
-          <option value="verificato">✅ Segna VERIFICATO</option>
+        <select class="status-select" onchange="aggiornaStato('${id}', this.value)" style="${isAdmin ? 'display:block' : 'none'}">
+          <option value="non-risolta">🔴 Segnalata</option>
+          <option value="risolta">🟢 Risolta</option>
           <option value="elimina">🗑 Elimina</option>
         </select>
       `;
@@ -248,15 +226,9 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     });
   }
 
-  window.aggiornaStato = async (id, val, fPath) => {
-    if(val === 'elimina') { 
-      if(confirm("Eliminare definitivamente?")) {
-        await remove(ref(db, 'segnalazioni/' + id));
-        if(fPath) try { await deleteObject(sRef(storage, fPath)); } catch(e) {}
-      }
-    } else if(val === 'verificato') {
-       await update(ref(db, 'segnalazioni/' + id), { verificato: true });
-    } else await update(ref(db, 'segnalazioni/' + id), { status: val });
+  window.aggiornaStato = async (id, val) => {
+    if(val === 'elimina') { if(confirm("Eliminare?")) await remove(ref(db, 'segnalazioni/' + id)); }
+    else await update(ref(db, 'segnalazioni/' + id), { status: val });
   };
 
   window.esportaDati = () => {
@@ -280,6 +252,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
     const d = document.getElementById('desc').value.trim();
     const file = document.getElementById('foto').files[0];
     if(!marker || !d) return alert("Punta sulla mappa e scrivi!");
+    const latlng = marker.getLatLng();
     const b = document.getElementById('btnInvia');
     b.innerText = "INVIO..."; b.disabled = true;
     try {
@@ -290,8 +263,8 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
         fUrl = await getDownloadURL(sRef(storage, fPath));
       }
       await push(ref(db, 'segnalazioni'), { 
-        cat: selectedCat, desc: d, lat: marker.getLatLng().lat, lng: marker.getLatLng().lng, 
-        fotoUrl: fUrl, fotoPath: fPath, status: 'non-risolta', ts: Date.now(), verificato: false 
+        cat: selectedCat, desc: d, lat: latlng.lat, lng: latlng.lng, 
+        fotoUrl: fUrl, fotoPath: fPath, status: 'non-risolta', ts: Date.now() 
       });
       location.reload();
     } catch (e) { b.innerText = "INVIA"; b.disabled = false; }
