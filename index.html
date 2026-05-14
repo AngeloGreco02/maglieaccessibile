@@ -18,19 +18,17 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 #map { height: 100%; width: 100%; }
 #sidebar { background: var(--surface); flex: 1; overflow-y: auto; padding: 15px; border-top: 2px solid var(--border); }
 @media (min-width: 768px) { #sidebar { width: 400px; flex: none; border-left: 1px solid var(--border); } }
-.section-title { font-size: 13px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; font-weight: 800; letter-spacing: 1px; }
+.section-title { font-size: 13px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; font-weight: 800; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center; }
 .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
 .cat-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 10px; border-radius: 8px; font-size: 11px; cursor: pointer; text-align: center; transition: 0.2s; }
 .cat-btn.active { border-color: var(--accent); background: rgba(224,53,53,0.1); }
 .cat-btn.plus.active { border-color: var(--blue); background: rgba(45,125,232,0.2); }
 textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-family: inherit; resize: none; }
 .btn-primary { width: 100%; background: var(--accent); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 800; cursor: pointer; }
-.privacy-note { font-size: 10px; color: #5a6070; margin-top: 8px; text-align: center; margin-bottom: 20px; }
 .report-item { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--accent); position: relative; }
 .status-select { background: #222; color: white; border: 1px solid var(--border); padding: 6px; border-radius: 4px; font-size: 11px; margin-top: 8px; width: 100%; display: none; }
 .badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
-.verified-tag { display: inline-block; background: rgba(46, 204, 113, 0.1); color: var(--green); border: 1px solid var(--green); font-size: 8px; padding: 1px 5px; border-radius: 3px; font-weight: 900; margin-top: 5px; }
-.critical-tag { display: inline-block; background: rgba(165, 94, 234, 0.2); color: var(--purple); border: 1px solid var(--purple); font-size: 8px; padding: 1px 5px; border-radius: 3px; font-weight: 900; margin-top: 5px; margin-left: 5px; }
+.export-btn { background: var(--blue); color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 10px; cursor: pointer; font-weight: 700; display: none; }
 </style>
 </head>
 <body>
@@ -51,12 +49,14 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
       <div class="cat-btn" onclick="setCat(this, 'Manutenzione')">⚠️ Manutenzione</div>
       <div class="cat-btn plus" onclick="setCat(this, 'Accessibile')">✅ Luogo OK</div>
     </div>
-    <textarea id="desc" placeholder="Cosa dobbiamo segnalare oggi?"></textarea>
+    <textarea id="desc" placeholder="Descrivi il problema o il punto di forza..."></textarea>
     <input type="file" id="foto" accept="image/*" style="margin-bottom:10px; font-size:11px; width:100%;">
     <button class="btn-primary" id="btnInvia">INVIA SEGNALAZIONE</button>
-    <div class="privacy-note">⚠️ Le segnalazioni di auto scadono automaticamente dopo 24 ore.</div>
     
-    <div class="section-title">Feed Attività</div>
+    <div class="section-title" style="margin-top:20px;">
+      Feed Attività 
+      <button class="export-btn" id="exportBtn" onclick="esportaDati()">📊 ESPORTA REPORT</button>
+    </div>
     <div id="lista"></div>
   </div>
 </div>
@@ -83,6 +83,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   let selectedCat = 'Architettonica';
   let marker;
   let isAdmin = false;
+  let rawData = {};
 
   const map = L.map('map', {zoomControl: false}).setView([40.1209, 18.2323], 15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -99,73 +100,84 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   window.abilitaGestione = () => {
     if(prompt("Password Admin:") === "maglie2025") {
       isAdmin = true;
-      document.querySelectorAll('.status-select').forEach(s => s.style.display = 'block');
-      alert("Modalità Admin Attiva.");
+      document.querySelectorAll('.status-select, .export-btn').forEach(s => s.style.display = 'block');
+      alert("Modalità Admin attiva.");
     }
   };
 
   onValue(ref(db, 'segnalazioni'), snap => {
-    const data = snap.val();
+    rawData = snap.val() || {};
     const lista = document.getElementById('lista');
     lista.innerHTML = "";
     map.eachLayer(l => { if(l instanceof L.Marker && l !== marker) map.removeLayer(l); });
 
-    if(data) {
-      const counts = {}; // Per contare i punti critici
-      Object.values(data).forEach(s => {
-        const key = `${s.lat.toFixed(4)},${s.lng.toFixed(4)}`;
-        counts[key] = (counts[key] || 0) + 1;
+    const counts = {};
+    Object.values(rawData).forEach(s => {
+      const key = `${s.lat.toFixed(4)},${s.lng.toFixed(4)}`;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+
+    Object.keys(rawData).reverse().forEach(id => {
+      const s = rawData[id];
+      const now = Date.now();
+      if(s.cat === 'Occupazione' && (now - s.ts) > 86400000 && s.status !== 'risolta') {
+        remove(ref(db, 'segnalazioni/' + id));
+        return;
+      }
+
+      const status = s.status || 'non-risolta';
+      const isAccessibile = s.cat === 'Accessibile';
+      const key = `${s.lat.toFixed(4)},${s.lng.toFixed(4)}`;
+      const isCritical = counts[key] > 2;
+
+      let color = isAccessibile ? '#2d7de8' : (status === 'in-carico' ? '#f1c40f' : (status === 'risolta' ? '#2ecc71' : '#e03535'));
+      if(isCritical && s.cat === 'Occupazione') color = '#a55eea';
+
+      const icon = L.divIcon({
+        className: 'custom-icon',
+        html: `<div style="background:${color}; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>`,
+        iconSize: [14, 14]
       });
 
-      Object.keys(data).reverse().forEach(id => {
-        const s = data[id];
-        const now = Date.now();
-        
-        // CANCELLAZIONE AUTOMATICA: Se Occupazione e più vecchia di 24 ore
-        if(s.cat === 'Occupazione' && (now - s.ts) > 86400000 && s.status !== 'risolta') {
-          remove(ref(db, 'segnalazioni/' + id));
-          return;
-        }
+      L.marker([s.lat, s.lng], {icon}).addTo(map).bindPopup(`<b>${s.cat}</b><br>${s.desc}`);
 
-        const status = s.status || 'non-risolta';
-        const isAccessibile = s.cat === 'Accessibile';
-        const key = `${s.lat.toFixed(4)},${s.lng.toFixed(4)}`;
-        const isCritical = counts[key] > 2;
-
-        let color = isAccessibile ? '#2d7de8' : (status === 'in-carico' ? '#f1c40f' : (status === 'risolta' ? '#2ecc71' : '#e03535'));
-        if(isCritical && s.cat === 'Occupazione') color = '#a55eea'; // Viola per i recidivi
-
-        const icon = L.divIcon({
-          className: 'custom-icon',
-          html: `<div style="background:${color}; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>`,
-          iconSize: [14, 14]
-        });
-
-        L.marker([s.lat, s.lng], {icon}).addTo(map).bindPopup(`<b>${s.cat}</b><br>${s.desc}`);
-
-        const item = document.createElement('div');
-        item.className = 'report-item';
-        item.style.borderLeftColor = color;
-        item.innerHTML = `
-          <div style="display:flex; justify-content:space-between">
-            <strong>${s.cat}</strong>
-            <span class="badge" style="background:${color}; color:${status==='in-carico'||isCritical?'#000':'#fff'}">${isCritical && s.cat === 'Occupazione' ? 'PUNTO CRITICO' : status.toUpperCase()}</span>
-          </div>
-          ${s.verificato ? '<span class="verified-tag">✓ VERIFICATO</span>' : ''}
-          ${isCritical ? '<span class="critical-tag">🔥 RECIDIVO</span>' : ''}
-          <p style="font-size:12px; margin:8px 0; color:#ccc;">${s.desc}</p>
-          <select class="status-select" onchange="aggiornaStato('${id}', this.value, '${s.fotoPath || ''}')" style="${isAdmin ? 'display:block' : 'none'}">
-            <option value="non-risolta" ${status==='non-risolta'?'selected':''}>🔴 Segnalata</option>
-            <option value="in-carico" ${status==='in-carico'?'selected':''}>🟡 In Carico</option>
-            <option value="risolta" ${status==='risolta'?'selected':''}>🟢 Risolta</option>
-            <option value="verificato">✅ Segna come VERIFICATO</option>
-            <option value="elimina">🗑 Elimina</option>
-          </select>
-        `;
-        lista.appendChild(item);
-      });
-    }
+      const item = document.createElement('div');
+      item.className = 'report-item';
+      item.style.borderLeftColor = color;
+      item.innerHTML = `
+        <div style="display:flex; justify-content:space-between">
+          <strong>${s.cat}</strong>
+          <span class="badge" style="background:${color}; color:${status==='in-carico'||isCritical?'#000':'#fff'}">${isCritical && s.cat === 'Occupazione' ? 'CRITICO' : status.toUpperCase()}</span>
+        </div>
+        ${s.verificato ? '<span style="color:#2ecc71; font-size:9px; font-weight:900;">✓ VERIFICATO</span>' : ''}
+        <p style="font-size:12px; margin:5px 0; color:#ccc;">${s.desc}</p>
+        <select class="status-select" onchange="aggiornaStato('${id}', this.value, '${s.fotoPath || ''}')" style="${isAdmin ? 'display:block' : 'none'}">
+          <option value="non-risolta" ${status==='non-risolta'?'selected':''}>🔴 Segnalata</option>
+          <option value="in-carico" ${status==='in-carico'?'selected':''}>🟡 In Carico</option>
+          <option value="risolta" ${status==='risolta'?'selected':''}>🟢 Risolta</option>
+          <option value="verificato">✅ Segna VERIFICATO</option>
+          <option value="elimina">🗑 Elimina</option>
+        </select>
+      `;
+      lista.appendChild(item);
+    });
   });
+
+  window.esportaDati = () => {
+    let csv = "Categoria,Descrizione,Stato,Verificato,Data\n";
+    Object.values(rawData).forEach(s => {
+      csv += `"${s.cat}","${s.desc.replace(/"/g, '""')}","${s.status || 'non-risolta'}","${s.verificato ? 'SI' : 'NO'}","${new Date(s.ts).toLocaleDateString()}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'report_maglie_accessibile.csv');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   window.aggiornaStato = async (id, val, fPath) => {
     if(val === 'elimina') {
@@ -203,11 +215,9 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
   document.getElementById('btnInvia').onclick = async () => {
     const d = document.getElementById('desc').value.trim();
     const file = document.getElementById('foto').files[0];
-    if(!marker || !d) return alert("Inserisci descrizione e tocca la mappa!");
-    
+    if(!marker || !d) return alert("Inserisci descrizione e posizione!");
     const b = document.getElementById('btnInvia');
     b.innerText = "INVIO..."; b.disabled = true;
-
     try {
       let fUrl = "", fPath = "";
       if(file) {
@@ -223,7 +233,7 @@ textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid va
       });
       location.reload();
     } catch (e) {
-      alert("Errore nell'invio.");
+      alert("Errore invio.");
       b.innerText = "INVIA SEGNALAZIONE"; b.disabled = false;
     }
   };
