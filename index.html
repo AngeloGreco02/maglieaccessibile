@@ -28,11 +28,8 @@
         textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 13px; resize: none; }
         .btn-send { width: 100%; background: var(--accent); color: #fff; border: none; padding: 15px; border-radius: 10px; font-weight: 800; cursor: pointer; }
         .report-item { background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--accent); }
-
-        /* PIN DEFINITIVO */
         .custom-pin { width: 34px; height: 34px; border-radius: 50% 50% 50% 0; position: absolute; transform: rotate(-45deg); left: 50%; top: 50%; margin: -34px 0 0 -17px; border: 2px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
-        .pin-icon { transform: rotate(45deg); font-size: 16px; display: block; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3)); }
-        
+        .pin-icon { transform: rotate(45deg); font-size: 16px; display: block; }
         .leaflet-control-geocoder { background: #1a1a1a !important; border: 1px solid var(--border) !important; border-radius: 8px !important; }
         .leaflet-control-geocoder-form input { color: white !important; background: transparent !important; }
     </style>
@@ -51,7 +48,7 @@
     <div id="map-wrap">
         <div id="controls">
             <select id="filterSelect" class="btn" onchange="window.filtraMappa(this.value)">
-                <option value="TUTTE">🔍 FILTRA: TUTTE</option>
+                <option value="TUTTE">🔍 TUTTE LE SEGNALAZIONI</option>
                 <option value="Barriera">♿ BARRIERE</option>
                 <option value="Auto">🚗 AUTO</option>
                 <option value="Guasto">⚠️ GUASTI</option>
@@ -114,6 +111,7 @@
     }).addTo(map);
 
     map.on('click', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
+    
     window.trovaGPS = () => map.locate({setView: true, maxZoom: 17});
     map.on('locationfound', e => { if(marker) map.removeLayer(marker); marker = L.marker(e.latlng).addTo(map); });
 
@@ -130,11 +128,7 @@
 
     window.abilitaAdmin = () => { if(prompt("Password:") === "maglie2025") { isAdmin = true; renderData(); } };
 
-    // FUNZIONE FILTRO CORRETTA
-    window.filtraMappa = (val) => {
-        activeFilter = val;
-        renderData();
-    };
+    window.filtraMappa = (val) => { activeFilter = val; renderData(); };
 
     onValue(ref(db, 'segnalazioni'), snap => {
         rawData = snap.val() || {};
@@ -148,11 +142,9 @@
         
         Object.keys(rawData).reverse().forEach(id => {
             const s = rawData[id];
-            
-            // Applica Filtro
             if (activeFilter !== "TUTTE" && s.cat !== activeFilter) return;
 
-            // Determina Colore e Icona in base alla categoria salvata
+            // DETERMINAZIONE ICONA E COLORE
             let color = "var(--accent)";
             let iconChar = "♿";
 
@@ -168,7 +160,6 @@
 
             L.marker([s.lat, s.lng], {icon: customIcon}).addTo(markersLayer).bindPopup(`<b>${s.cat}</b><br>${s.desc}`);
 
-            // Lista laterale
             const div = document.createElement('div');
             div.className = 'report-item'; div.style.borderLeftColor = color;
             div.innerHTML = `<b>${iconChar} ${s.cat}</b><p style="font-size:11px; margin-top:4px;">${s.desc}</p>
@@ -183,7 +174,7 @@
     document.getElementById('btnInvia').onclick = async () => {
         const d = document.getElementById('desc').value.trim();
         const file = document.getElementById('fotoFile').files[0];
-        if(!marker || !d) return alert("Punta sulla mappa e scrivi!");
+        if(!marker || !d) return alert("Punta sulla mappa e scrivi una descrizione!");
         const btn = document.getElementById('btnInvia'); btn.disabled = true; btn.innerText = "CARICAMENTO...";
         
         let url = "";
