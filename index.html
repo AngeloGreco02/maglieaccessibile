@@ -1,41 +1,57 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Maglie Senza Ostacoli</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
     <style>
-        body { font-family: sans-serif; margin: 0; padding: 20px; }
-        #map { height: 300px; width: 100%; border-radius: 8px; margin-bottom: 15px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 15px; background-color: #f4f7f6; }
+        h1 { color: #2c3e50; font-size: 1.5rem; text-align: center; }
+        #map { height: 350px; width: 100%; border-radius: 12px; border: 2px solid #ddd; margin-bottom: 20px; z-index: 1; }
+        .form-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .form-group { margin-bottom: 15px; }
-        input, textarea, button { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; }
-        button { background: #0070f3; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #34495e; }
+        textarea { width: 100%; height: 80px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; resize: none; }
+        input[type="file"] { width: 100%; padding: 10px 0; }
+        button { width: 100%; padding: 12px; background-color: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.3s; }
+        button:hover { background-color: #c0392b; }
+        .info { font-size: 0.8rem; color: #7f8c8d; text-align: center; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <h1>Segnala una Barriera a Maglie</h1>
+
+    <h1>Maglie Senza Ostacoli</h1>
     
     <div id="map"></div>
 
-    <div class="form-group">
-        <label>Descrizione del problema:</label>
-        <textarea id="desc" placeholder="Es: Marciapiede rotto, auto su scivolo..."></textarea>
+    <div class="form-container">
+        <div class="form-group">
+            <label for="desc">Cosa non funziona?</label>
+            <textarea id="desc" placeholder="Descrivi la barriera (es. gradino alto, marciapiede occupato...)"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="fileInput">Allega Foto o Video:</label>
+            <input type="file" id="fileInput" accept="image/*,video/*">
+        </div>
+
+        <button id="sendBtn">Invia Segnalazione</button>
+        <p class="info">Clicca sulla mappa per indicare il punto esatto.</p>
     </div>
 
-    <div class="form-group">
-        <label>Foto/Video della barriera:</label>
-        <input type="file" id="fileInput" accept="image/*,video/*">
-    </div>
-
-    <button id="sendBtn">Invia Segnalazione Anonima</button>
-
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-        // Tua configurazione rilevata dallo screenshot
-        const cfg = {
+        // Configurazione Firebase
+        const firebaseConfig = {
             apiKey: "AIzaSyCrxqfyDQPZABGt3eWDvhzyRyaJrsipJlA",
             authDomain: "fantasocio.firebaseapp.com",
             databaseURL: "https://fantasocio-default-rtdb.europe-west1.firebasedatabase.app",
@@ -45,39 +61,60 @@
             appId: "1:913473439775:web:f60b4fae1ed694c997ed2a"
         };
 
-        const app = initializeApp(cfg);
+        const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Inizializza Mappa su Maglie
-        const map = L.map('map').setView([40.1209, 18.2323], 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
+        // Inizializzazione Mappa su Maglie
         let marker;
-        map.on('click', (e) => {
+        const map = L.map('map').setView([40.1209, 18.2323], 15);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Funzione per posizionare il marker
+        function placeMarker(latlng) {
             if (marker) map.removeLayer(marker);
-            marker = L.marker(e.latlng).addTo(map);
+            marker = L.marker(latlng, {draggable: true}).addTo(map);
+        }
+
+        // Click sulla mappa
+        map.on('click', (e) => {
+            placeMarker(e.latlng);
         });
 
+        // Localizzazione automatica
+        map.locate({setView: true, maxZoom: 16});
+        map.on('locationfound', (e) => {
+            placeMarker(e.latlng);
+        });
+
+        // Invio dati
         document.getElementById('sendBtn').onclick = async () => {
             const desc = document.getElementById('desc').value;
             const coords = marker ? marker.getLatLng() : null;
+            const file = document.getElementById('fileInput').files[0];
 
-            if (!desc || !coords) return alert("Inserisci descrizione e clicca sulla mappa!");
+            if (!desc || !coords) {
+                alert("Per favore, inserisci una descrizione e seleziona un punto sulla mappa.");
+                return;
+            }
 
             try {
                 await push(ref(db, 'segnalazioni'), {
                     descrizione: desc,
                     lat: coords.lat,
                     lng: coords.lng,
+                    nomeFile: file ? file.name : "Nessun file",
                     timestamp: Date.now()
                 });
-                alert("Segnalazione inviata con successo!");
+                alert("Segnalazione inviata correttamente! Grazie per il tuo contributo.");
                 location.reload();
-            } catch (e) {
-                alert("Errore nell'invio: " + e.message);
+            } catch (error) {
+                console.error(error);
+                alert("Errore nell'invio. Riprova più tardi.");
             }
         };
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 </body>
 </html>
